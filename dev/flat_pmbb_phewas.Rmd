@@ -1,5 +1,5 @@
 ---
-title: "flat_pmbb_phewas.Rmd for working package"
+title: "PMBB Phenome-wide Association Studies"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -23,8 +23,6 @@ If it is the first time you use {fusen}, after 'description', you can directly r
 pkgload::load_all(export_all = FALSE)
 ```
 
-# Include some data examples in your package
-
 <!-- 
  Store your dataset in a directory named "inst/" at the root of your project.
  Use it for your tests in this Rmd thanks to `pkgload::load_all()` to make it available
@@ -33,148 +31,72 @@ and `system.file()` to read it in your examples.
 - There already is a dataset in the "inst/" directory to be used in the examples below
 -->
 
-```{r development-dataset}
+```{r development-dataset, eval=FALSE}
 # Run all this chunk in the console directly
 # There already is a dataset in the "inst/" directory
 # Make the dataset file available to the current Rmd during development
 pkgload::load_all(path = here::here(), export_all = FALSE)
-
-# You will be able to read your example data file in each of your function examples and tests as follows - see chunks below
-datafile <- system.file("nyc_squirrels_sample.csv", package = "pmbbPheWASr")
-nyc_squirrels <- read.csv(datafile, encoding = "UTF-8")
-
-nyc_squirrels
+# 
+# # You will be able to read your example data file in each of your function examples and tests as follows - see chunks below
+# datafile <- system.file("nyc_squirrels_sample.csv", package = "pmbbPheWASr")
+# nyc_squirrels <- read.csv(datafile, encoding = "UTF-8")
+# 
+# nyc_squirrels
 ```
 
 
-# The first function of the package: Calculate the median of a vector
+# Filter Variant Annotations File
 
-<!--
-Create a chunk for the core of the function
-
-- The chunk needs to be named `function` at least
-- It contains the code of a documented function
-- The chunk can also be named `function-my_median` to make it easily
-findable in your Rmd
-- Let the `@examples` part empty, and use the next `examples` chunk instead to present reproducible examples
-
-After inflating the template
-
--  This function code will automatically be added in a new file in the "R/" directory
--->
-
-```{r function}
-#' My median
-#'
-#' @param x Vector of Numeric values
-#' @inheritParams stats::median
+The `pmbb_filter_exome_annotations` function filters the variant annotations file to only include variants within the specified gene. Because the variant annotation file is extremely large, this function wraps the `awk` shell command.
+    
+```{r function-pmbb_filter_exome_annotations_gene}
+#' Filter the PMBB whole exome sequence annotations file
+#' 
+#' This function filters the variant annotations file to only include variants within the specified gene. Because the variant annotation file is extremely large, this function wraps the `awk` shell command
+#' 
+#' @param annotations_filename Path to the PMBB whole-exome sequencing variant annotations file
+#' @param gene_names A character vector of gene names used to filter the variant annotations file 
 #'
 #' @return
-#' Median of vector x
+#' A [tibble::tibble()] containing the filtered variant annotations 
+#' 
+#' 
 #' @export
-#'
-#' @examples
-my_median <- function(x, na.rm = TRUE) {
-  if (!is.numeric(x)) {stop("x should be numeric")}
-  stats::median(x, na.rm = na.rm)
+
+pmbb_filter_exome_annotations_gene <- function(annotations_filename, gene_names) {
+  
+  cli::cli_progress_step("Extracting {gene_names} from {.file {annotations_filename}}")
+  
+  exome_gene_annotations_filtered <- processx::run("awk",
+    args = c(paste0("NR == 1 || ", paste0("($8 == \"", gene_names, "\")", collapse = " || ")), annotations_filename),
+    echo = FALSE,
+    echo_cmd = FALSE
+  )
+  
+  exome_gene_annotations_df <- data.table::fread(text = exome_gene_annotations_filtered$stdout) %>%
+    tibble::as_tibble()
+  
+  return(exome_gene_annotations_df)
 }
 ```
-
-<!--
-Create a chunk with an example of use for your function
-
-- The chunk needs to be named `examples` at least
-- It contains working examples of your function
-- The chunk is better be named `examples-my_median` to be handled
-correctly when inflated as a vignette
-
-After inflating the template
-
--  This example will automatically be added in the '@examples' part of our function above in the "R/" directory
-- This example will automatically be added in the vignette created from this Rmd template
--->
-
-```{r examples}
-my_median(1:12)
-
-# Example with your dataset in "inst/"
-datafile <- system.file("nyc_squirrels_sample.csv", package = "pmbbPheWASr")
-nyc_squirrels <- read.csv(datafile, encoding = "UTF-8")
-# Apply my function
-my_median(nyc_squirrels[,"hectare_squirrel_number"])
+  
+```{r example-pmbb_filter_exome_annotations_gene}
+pmbb_filter_exome_annotations_gene(annotations_filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+                              gene_names = c("LDLR"))
 ```
-
-<!--
-Create a chunk with a test of use for your function
-
-- The chunk needs to be named `tests` at least
-- It contains working tests of your function
-- The chunk is better be named `tests-my_median` to be handled
-correctly when inflated as a vignette
-
-After inflating the template
-
--  This test code will automatically be added in the "tests/testthat/" directory
--->
-
-```{r tests}
-test_that("my_median works properly and show error if needed", {
-  expect_true(my_median(1:12) == 6.5)
-  expect_error(my_median("text"))
-})
-
-# Test with your dataset in "inst/"
-datafile <- system.file("nyc_squirrels_sample.csv", package = "pmbbPheWASr")
-nyc_squirrels <- read.csv(datafile, encoding = "UTF-8")
-# Apply test on my function
-test_that("my_median works properly with internal dataset", {
-  expect_equal(my_median(nyc_squirrels[,"hectare_squirrel_number"]), 3)
+  
+```{r tests-pmbb_filter_exome_annotations_gene}
+test_that("pmbb_filter_exome_annotations works", {
+  
+  res <- pmbb_filter_exome_annotations_gene(annotations_filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+                              gene_names = c("LDLR"))
+  
+  expect_true(inherits(pmbb_filter_exome_annotations_gene, "function"))
+  expect_true(tibble::is_tibble(res))
 })
 ```
 
-# Calculate the mean of a vector
 
-<!--
-There can be other functions, examples and tests in your flat template.
-Each of them will be inflated in a different file, provided that there is a level-1 or level-2 section title to separate from previous functions.
--->
-
-## Use sub-functions in the same chunk
-
-```{r function-my_other_median}
-#' My Other median
-#'
-#' @param x Vector of Numeric values
-#' @inheritParams stats::median
-#'
-#' @return
-#' Median of vector x
-#' @export
-#'
-#' @examples
-my_other_median <- function(x, na.rm = TRUE) {
-  if (!is.numeric(x)) {stop("x should be numeric")}
-  sub_median(x, na.rm =na.rm)
-}
-
-#' Core of the median not exported
-#' @param x Vector of Numeric values
-#' @inheritParams stats::median
-sub_median <- function(x, na.rm = TRUE) {
-  stats::median(x, na.rm)
-}
-```
-
-```{r examples-my_other_median}
-my_other_median(1:12)
-```
-
-```{r tests-my_other_median}
-test_that("my_median works properly and show error if needed", {
-  expect_true(my_other_median(1:12) == 6.5)
-  expect_error(my_other_median("text"))
-})
-```
 
 <!--
 # There can be development actions
@@ -194,13 +116,3 @@ These are only included in the present flat template file, their content will no
 fusen::inflate(flat_file = "dev/flat_pmbb_phewas.Rmd", vignette_name = "Get started")
 ```
 
-
-# Inflate your package
-
-You're one inflate from paper to box.
-Build your package from this very Rmd using `fusen::inflate()`
-
-- Verify your `"DESCRIPTION"` file has been updated
-- Verify your function is in `"R/"` directory
-- Verify your test is in `"tests/testthat/"` directory
-- Verify this Rmd appears in `"vignettes/"` directory
