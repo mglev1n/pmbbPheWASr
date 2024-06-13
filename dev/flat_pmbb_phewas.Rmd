@@ -47,56 +47,91 @@ pkgload::load_all(path = here::here(), export_all = FALSE)
 
 # Filter Variant Annotations File
 
-The `pmbb_filter_exome_annotations` function filters the variant annotations file to only include variants within the specified gene. Because the variant annotation file is extremely large, this function wraps the `awk` shell command.
+The `awk_str_filter` function can be used to filter arbitrary rows from a tab-delimited text file using `awk`. The function accepts the path to a tab-delimited text file, name of a column to filter, and the string to filter for. The function returns a tibble containing the filtered rows. This function can be used to filter the PMBB variant annotations file to only include variants within the specified gene(s).
     
-```{r function-pmbb_filter_exome_annotations_gene}
-#' Filter the PMBB whole exome sequence annotations file
-#' 
-#' This function filters the variant annotations file to only include variants within the specified gene. Because the variant annotation file is extremely large, this function wraps the `awk` shell command
-#' 
-#' @param annotations_filename Path to the PMBB whole-exome sequencing variant annotations file
-#' @param gene_names A character vector of gene names used to filter the variant annotations file 
+```{r function-awk_str_filter}
+#' Filter arbitrary rows from a tab-delimited text file using awk
+#'
+#' This function wraps the system command `awk` to efficiently filter rows from a tab-delimited text file. The function accepts the path to a tab-delimited text file, name of a column to filter, and the string to filter for. The function returns a tibble containing the filtered rows.
+#'
+#' @param filename The path to the tab-delimited text file.
+#' @param filter_col The name of the column to filter.
+#' @param filter_str A character vector of strings to filter for in the specified column.
 #'
 #' @return
-#' A [tibble::tibble()] containing the filtered variant annotations 
-#' 
-#' 
+#'
+#' A [tibble::tibble()] containing the filtered rows from the input file
+#'
 #' @export
+#'
+awk_str_filter <- function(filename, filter_col, filter_str) {
+    # Check if the file exists
+    if (!file.exists(filename)) {
+        cli::cli_abort("File does not exist: {filename}")
+    }
+    
+    cli::cli_progress_step("Extracting '{filter_str}' from column '{filter_col}' in {.file {filename}}")
+  
+    # Determine the column index based on the filter_col
+    header <- readLines(filename, n = 1)
+    col_names <- strsplit(header, "\t")[[1]]
+    col_index <- which(col_names == filter_col)
 
-pmbb_filter_exome_annotations_gene <- function(annotations_filename, gene_names) {
-  
-  cli::cli_progress_step("Extracting {gene_names} from {.file {annotations_filename}}")
-  
-  exome_gene_annotations_filtered <- processx::run("awk",
-    args = c(paste0("NR == 1 || ", paste0("($8 == \"", gene_names, "\")", collapse = " || ")), annotations_filename),
-    echo = FALSE,
-    echo_cmd = FALSE
-  )
-  
-  exome_gene_annotations_df <- data.table::fread(text = exome_gene_annotations_filtered$stdout) %>%
-    tibble::as_tibble()
-  
-  return(exome_gene_annotations_df)
+    if (length(col_index) == 0) {
+        cli::cli_abort("Column not found: {filter_col}")
+    }
+
+    # Construct the awk command
+    # awk_cmd <- paste0("awk -F'\t' '", paste0("$", col_index, " ~ /", paste(filter_str, collapse = "|"), "/"), "' ", shQuote(filename))
+    
+    awk_cmd <- c(paste0("NR == 1 || ", paste0("($", col_index, " == \"", filter_str, "\")", collapse = " || ")), filename)
+    
+    # Execute the awk command using processx
+    result <- processx::run(
+        command = "awk",
+        args = awk_cmd,
+        error_on_status = TRUE
+    )
+
+    # Check if the command executed successfully
+    if (result$status != 0) {
+        cli::cli_abort("Error executing awk command: {result$stderr}")
+    }
+
+    # Format the filtered output using data.table::fread()
+    filtered_dt <- data.table::fread(
+        text = result$stdout,
+        sep = "\t",
+        header = FALSE,
+        stringsAsFactors = FALSE,
+        quote = "",
+        colClasses = rep("character", length(col_names))
+    )
+
+    # Convert the data.table to a tibble
+    filtered_tibble <- tibble::as_tibble(filtered_dt)
+
+    return(filtered_tibble)
 }
+
 ```
   
-```{r example-pmbb_filter_exome_annotations_gene}
-pmbb_filter_exome_annotations_gene(annotations_filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
-                              gene_names = c("LDLR"))
+```{r example-awk_str_filter}
+awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+               filter_col = "Gene.refGene",
+               filter_str = c("LDLR", "PCSK9"))
 ```
   
-```{r tests-pmbb_filter_exome_annotations_gene}
-test_that("pmbb_filter_exome_annotations works", {
-  
-  res <- pmbb_filter_exome_annotations_gene(annotations_filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
-                              gene_names = c("LDLR"))
-  
-  expect_true(inherits(pmbb_filter_exome_annotations_gene, "function"))
+```{r tests-awk_str_filter}
+test_that("awk_str_filter works", {
+  res <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+               filter_col = "Gene.refGene",
+               filter_str = c("LDLR"))
+  expect_true(inherits(awk_str_filter, "function")) 
   expect_true(tibble::is_tibble(res))
 })
 ```
-
-
+  
 
 <!--
 # There can be development actions

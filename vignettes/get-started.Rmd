@@ -42,15 +42,18 @@ and `system.file()` to read it in your examples.
 
 # Filter Variant Annotations File
 
-The `pmbb_filter_exome_annotations` function filters the variant annotations file to only include variants within the specified gene. Because the variant annotation file is extremely large, this function wraps the `awk` shell command.
+The `awk_str_filter` function can be used to filter arbitrary rows from a tab-delimited text file using `awk`. The function accepts the path to a tab-delimited text file, name of a column to filter, and the string to filter for. The function returns a tibble containing the filtered rows. This function can be used to filter the PMBB variant annotations file to only include variants within the specified gene(s).
     
 
   
 
-```{r example-pmbb_filter_exome_annotations_gene}
-pmbb_filter_exome_annotations_gene(annotations_filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
-                              gene_names = c("LDLR"))
+```{r example-awk_str_filter}
+awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+               filter_col = "Gene.refGene",
+               filter_str = c("LDLR", "PCSK9"))
 ```
+
+  
 
   
 

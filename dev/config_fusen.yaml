@@ -1,8 +1,8 @@
 flat_pmbb_phewas.Rmd:
   path: dev/flat_pmbb_phewas.Rmd
   state: active
-  R: R/pmbb_filter_exome_annotations_gene.R
-  tests: tests/testthat/test-pmbb_filter_exome_annotations_gene.R
+  R: R/awk_str_filter.R
+  tests: tests/testthat/test-awk_str_filter.R
   vignettes: vignettes/get-started.Rmd
   inflate:
     flat_file: dev/flat_pmbb_phewas.Rmd
