@@ -95,7 +95,7 @@ filter_dataframe(
 
 # Extracting genotypes
 
-## Single list extraction
+## Extract a single set of variants
 
 The `pmbb_extract_genotypes` function is a wrapper around `plink2` to extract genotypes from PMBB plink files. The function accepts the path to the plink files and the list of variant IDs to extract. The function returns a long-format tibble containing the extracted genotypes for each PMBB participant.
 

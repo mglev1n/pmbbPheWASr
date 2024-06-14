@@ -277,7 +277,7 @@ test_that("filter_dataframe works", {
 
 # Extracting genotypes
 
-## Single list extraction
+## Extract a single set of variants
 
 The `pmbb_extract_genotypes` function is a wrapper around `plink2` to extract genotypes from PMBB plink files. The function accepts the path to the plink files and the list of variant IDs to extract. The function returns a long-format tibble containing the extracted genotypes for each PMBB participant.
 
@@ -558,6 +558,136 @@ test_that("pmbb_extract_genotype_masks works", {
   
   expect_type(ldlr_mask_res, "list")
   expect_equal(ldlr_mask_res$plof_0.001$mask_type, "burden")
+})
+```
+
+# PheWAS convenience functions
+
+## Format PMBB phecode data
+    
+```{r function-pmbb_format_phecodes}
+#' Format PMBB phecode data
+#' 
+#' Given a dataframe containing PMBB phecodes, apply a case treshold for categorizing individuals as cases or controls
+#' 
+#' @param phecode_file Path to PMBB phecode file used to run PheWAS
+#' @param phecode_case_threshold Number of cases required to classify an individual as a case
+#'
+#' @return A [tibble::tibble()] containing `PMBB_ID` and phecodes as columns, with TRUE/FALSE values for each phecode column
+#' 
+#' @export
+
+pmbb_format_phecodes <- function(phecode_file, phecode_case_threshold = 2){
+    cli::cli_progress_step("Formatting {phecode_file}")
+  
+  vroom::vroom(phecode_file, show_col_types = FALSE) %>%
+    tidytable::pivot_longer(cols = c(-PMBB_ID)) %>%
+    tibble::as_tibble() %>%
+    dplyr::mutate(case = dplyr::if_else(value >= phecode_case_threshold, TRUE, FALSE)) %>%
+    tidytable::select(PMBB_ID, name, case) %>%
+    tidytable::pivot_wider(names_from = name, values_from = case, values_fill = FALSE) %>%
+    tibble::as_tibble()
+}
+```
+  
+```{r example-pmbb_format_phecodes}
+#' \dontrun{
+pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt")
+#' }
+
+```
+  
+```{r tests-pmbb_format_phecodes}
+test_that("pmbb_format_phecodes works", {
+  expect_true(inherits(pmbb_format_phecodes, "function"))
+  phecode_file <- "phecodes.tsv"
+  if (!file.exists(phecode_file)) {
+    # The path to use during dev in the flat file
+    phecode_file <- file.path("tests", "testthat", phecode_file)
+    if (!file.exists(phecode_file)) {
+      stop(phecode_file, " does not exist")
+    }
+  }
+
+  res <- pmbb_format_phecodes(phecode_file)
+  expect_true(tibble::is_tibble(res))
+})
+```
+  
+
+## Run a PheWAS
+
+The `run_pmbb_phewas` function runs a PheWAS on the PMBB data, using the results of the `pmbb_extract_genotype_masks` function and paths to PMBB files containing phenotype and covariate data. 
+    
+```{r function-run_pmbb_phewas}
+#' Run a PheWAS on PMBB data
+#' 
+#' This function runs a PheWAS on PMBB data, using genotype information and paths to PMBB files containing phenotype and covariate data. The function ideally accepts genotype information from the `pmbb_extract_genotype_masks` function, but can accept any genotype information of the format `list(mask_name = list(genotypes = data.frame(PMBB_ID = character(), genotype = character())))`
+#' 
+#' @param mask_genotypes_list A named list, where each element contains a named element called `genotypes` which contains `PMBB_ID` and `genotype` columns.
+#' @param phecode_file Path to PMBB phenotype file used to run PheWAS
+#' @param covariate_file Path to PMBB covariate file used to run PheWAS
+#' @param demographics_file Path to PMBB demographics file used to run PheWAS
+#' @param populations A character vector of populations to run PheWAS on. Default is `c("EUR", "AFR", "ALL")`
+#' @param phenotype_case_count The minimum number of codes required to be considered a case (Default: 2)
+#' @param ... Additional arguments passed to [PheWAS::phewas()]
+
+#' @return A list containing dataframes including the results of the PheWAS for each population
+#' 
+#' @export
+run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_file, demographics_file, populations = c("EUR", "AFR", "ALL", phenotype_case_count = 2, ...)) {
+  # Check if mask_genotypes_list is a list
+  if (!is.list(mask_genotypes_list)) {
+    cli::cli_abort("`mask_genotypes_list` must be a list")
+  }
+
+  # Check if phenotype_file exists
+  if (!file.exists(phecode_file)) {
+    cli::cli_abort("{phenotype_file} does not exist")
+  }
+
+  # Check if covariate_file exists
+  if (!file.exists(covariate_file)) {
+    cli::cli_abort("{covariate_file} does not exist")
+  }
+
+  # Check if demographics_file exists
+  if (!file.exists(demographics_file)) {
+    cli::cli_abort("{demographics_file}  does not exist")
+  }
+
+  # Check if populations is a character vector
+  if (!is.character(populations)) {
+    cli::cli_abort("populations must be a character vector")
+  }
+
+  # Check if populations is not empty
+  if (length(populations) == 0) {
+    cli::cli_abort("populations must not be empty")
+  }
+
+  # Read phenotype file and apply phenotype_case_count
+  
+}
+```
+  
+```{r example-run_pmbb_phewas}
+#' \dontrun {
+run_pmbb_phewas(
+  mask_genotypes_list = ldlr_mask_res,
+  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+  covariate_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt",
+  demographics_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_demographics.txt",
+  populations = c("EUR", "AFR", "ALL")
+)
+#' }
+
+```
+  
+```{r tests-run_pmbb_phewas}
+test_that("run_pmbb_phewas works", {
+  expect_true(inherits(run_pmbb_phewas, "function")) 
+  
 })
 ```
   
