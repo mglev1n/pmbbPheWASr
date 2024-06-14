@@ -17,7 +17,9 @@
 #' @import rlang
 #' @noRd
 #' @examples
-#' filter_dataframe(dplyr::starwars, list(height = " > 100", eye_color = " == 'blue'"))
+#' \dontrun{ 
+#' filter_dataframe(ldlr_variants, filter_list = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"))
+#' }
 
 filter_dataframe <- function(df, filter_list) {
   # Check if the input is a data frame

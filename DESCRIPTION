@@ -16,7 +16,6 @@ Imports:
     fs,
     glue,
     magrittr,
-    PheWAS,
     processx,
     purrr,
     rlang,
@@ -26,10 +25,10 @@ Suggests:
     knitr,
     rmarkdown,
     testthat
-Remotes:
-    PheWAS/PheWAS
 VignetteBuilder: 
     knitr
+Remotes:
+    PheWAS/PheWAS
 Config/fusen/version: 0.5.2
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

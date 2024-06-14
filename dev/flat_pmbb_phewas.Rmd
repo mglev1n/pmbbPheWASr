@@ -117,9 +117,11 @@ awk_str_filter <- function(filename, filter_col, filter_str) {
 ```
   
 ```{r example-awk_str_filter}
+#' \dontrun{
 ldlr_variants <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
                filter_col = "Gene.refGene",
                filter_str = c("LDLR"))
+#' }
 ```
   
 ```{r tests-awk_str_filter}
@@ -302,7 +304,9 @@ filter_dataframe <- function(df, filter_list) {
 ```
   
 ```{r example-filter_dataframe, eval=FALSE}
-filter_dataframe(dplyr::starwars, list(height = " > 100", eye_color = " == 'blue'"))
+#' \dontrun{ 
+filter_dataframe(ldlr_variants, filter_list = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"))
+#' }
 ```
   
 ```{r tests-filter_dataframe}
@@ -344,7 +348,7 @@ apply_variant_masks <- function(annotation_df, masks) {
   
   # Apply the filter criteria to the data frame for each mask
   filtered_dfs <- purrr::map(masks, function(mask) {
-    pmbbPheWASr:::filter_dataframe(annotation_df, mask)
+    filter_dataframe(annotation_df, mask)
   })
   
   # Set the names of the filtered data frames based on the names of the masks
@@ -355,9 +359,11 @@ apply_variant_masks <- function(annotation_df, masks) {
 ```
   
 ```{r example-apply_variant_masks}
+#' \dontrun{ 
 apply_variant_masks(ldlr_variants, masks = list(plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"), 
                                                 common_0.01 = list(gnomAD_exome_ALL = "> 0.01"), 
                                                 exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")))
+#' }
 ```
   
 ```{r tests-apply_variant_masks}
@@ -366,6 +372,8 @@ test_that("apply_variant_masks works", {
 })
 ```
   
+
+
   
 <!--
 # There can be development actions

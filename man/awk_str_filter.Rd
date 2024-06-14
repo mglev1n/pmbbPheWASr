@@ -20,7 +20,9 @@ A \code{\link[tibble:tibble]{tibble::tibble()}} containing the filtered rows fro
 This function wraps the system command \code{awk} to efficiently filter rows from a tab-delimited text file. The function accepts the path to a tab-delimited text file, name of a column to filter, and the string to filter for. The function returns a tibble containing the filtered rows.
 }
 \examples{
+\dontrun{
 ldlr_variants <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
                filter_col = "Gene.refGene",
                filter_str = c("LDLR"))
+}
 }
