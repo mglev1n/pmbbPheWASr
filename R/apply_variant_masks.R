@@ -33,7 +33,7 @@ apply_variant_masks <- function(annotation_df, masks) {
   
   # Apply the filter criteria to the data frame for each mask
   filtered_dfs <- purrr::map(masks, function(mask) {
-    pmbbPheWASr:::filter_dataframe(annotation_df, mask)
+    filter_dataframe(annotation_df, mask)
   })
   
   # Set the names of the filtered data frames based on the names of the masks

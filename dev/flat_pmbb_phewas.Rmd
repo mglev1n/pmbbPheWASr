@@ -116,7 +116,7 @@ awk_str_filter <- function(filename, filter_col, filter_str) {
 
 ```
   
-```{r example-awk_str_filter}
+```{r example-awk_str_filter, eval=FALSE}
 #' \dontrun{
 ldlr_variants <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
                filter_col = "Gene.refGene",
@@ -215,7 +215,7 @@ pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col
 }
 ```
   
-```{r example-pmbb_extract_genotypes}
+```{r example-pmbb_extract_genotypes, eval=FALSE}
 #' \dontrun{
 pmbb_extract_genotypes(variant_df = ldlr_variants,
                        variant_id_col = ID,
@@ -358,7 +358,7 @@ apply_variant_masks <- function(annotation_df, masks) {
 }
 ```
   
-```{r example-apply_variant_masks}
+```{r example-apply_variant_masks, eval=FALSE}
 #' \dontrun{ 
 apply_variant_masks(ldlr_variants, masks = list(plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"), 
                                                 common_0.01 = list(gnomAD_exome_ALL = "> 0.01"), 
