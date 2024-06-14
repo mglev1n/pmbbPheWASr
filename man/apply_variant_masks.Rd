@@ -21,9 +21,14 @@ A named list of filtered \code{\link[tibble:tibble]{tibble::tibble()}}s based on
 This function applies variant mask criteria to a data frame containing variant annotations. The function can accept multiple sets of filter criteria, each defined as a list of column names and filter conditions. The resulting filtered data frames are returned as a named list.
 }
 \examples{
-\dontrun{ 
-apply_variant_masks(ldlr_variants, masks = list(plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"), 
-                                                common_0.01 = list(gnomAD_exome_ALL = "> 0.01"), 
-                                                exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")))
+\dontrun{
+apply_variant_masks(
+  ldlr_variants,
+  masks = list(
+    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
+    common_0.01 = list(gnomAD_exome_ALL = "> 0.01"),
+    exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")
+  )
+)
 }
 }

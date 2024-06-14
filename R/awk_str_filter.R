@@ -16,9 +16,10 @@
 #'
 #' @examples
 #' \dontrun{
-#' ldlr_variants <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
-#'                filter_col = "Gene.refGene",
-#'                filter_str = c("LDLR"))
+#' ldlr_variants <- awk_str_filter(
+#'   filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+#'   filter_col = "Gene.refGene",
+#'   filter_str = c("LDLR"))
 #' }
 awk_str_filter <- function(filename, filter_col, filter_str) {
     # Check if the file exists

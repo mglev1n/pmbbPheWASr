@@ -49,40 +49,10 @@ The `awk_str_filter` function can be used to filter arbitrary rows from a tab-de
 
 ```{r example-awk_str_filter, eval = FALSE}
 #' \dontrun{
-ldlr_variants <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
-               filter_col = "Gene.refGene",
-               filter_str = c("LDLR"))
-#' }
-```
-
-  
-
-# Extract genotypes
-
-    
-
-  
-
-```{r example-pmbb_extract_genotypes, eval = FALSE}
-#' \dontrun{
-pmbb_extract_genotypes(variant_df = ldlr_variants,
-                       variant_id_col = ID,
-                       effect_allele_col = Alt,
-                       plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-                       bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
-#' }
-```
-
-  
-
-    
-
-
-  
-
-```{r example-filter_dataframe, eval = FALSE}
-#' \dontrun{ 
-filter_dataframe(ldlr_variants, filter_list = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"))
+ldlr_variants <- awk_str_filter(
+  filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  filter_col = "Gene.refGene",
+  filter_str = c("LDLR"))
 #' }
 ```
 
@@ -91,14 +61,21 @@ filter_dataframe(ldlr_variants, filter_list = list(ExonicFunc.ensGene = "== 'sto
 # Apply variant masks to annotation file
 
     
+The `apply_variant_masks` function applies variant mask criteria to a data frame containing variant annotations. The function can accept multiple sets of filter criteria, each defined as a list of column names and filter conditions. The resulting filtered data frames are returned as a named list.
+
 
   
 
 ```{r example-apply_variant_masks, eval = FALSE}
-#' \dontrun{ 
-apply_variant_masks(ldlr_variants, masks = list(plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"), 
-                                                common_0.01 = list(gnomAD_exome_ALL = "> 0.01"), 
-                                                exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")))
+#' \dontrun{
+apply_variant_masks(
+  ldlr_variants,
+  masks = list(
+    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
+    common_0.01 = list(gnomAD_exome_ALL = "> 0.01"),
+    exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")
+  )
+)
 #' }
 ```
 
@@ -106,8 +83,39 @@ apply_variant_masks(ldlr_variants, masks = list(plof_0.001 = list(ExonicFunc.ens
 
   
 
+```{r example-filter_dataframe, eval = FALSE}
+#' \dontrun{
+filter_dataframe(
+  ldlr_variants, 
+  filter_list = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"))
+#' }
+```
 
   
+
+# Extract genotypes
+
+The `pmbb_extract_genotypes` function is a wrapper around `plink2` to extract genotypes from PMBB plink files. The function accepts the path to the plink files and the list of variant IDs to extract. The function returns a long-format tibble containing the extracted genotypes for each PMBB participant.
+
+
+  
+
+```{r example-pmbb_extract_genotypes, eval = FALSE}
+#' \dontrun{
+pmbb_extract_genotypes(
+  variant_df = ldlr_variants,
+  variant_id_col = ID,
+  effect_allele_col = Alt,
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+)
+#' }
+```
+
+  
+
+    
+
 <!--
 
 # There can be development actions

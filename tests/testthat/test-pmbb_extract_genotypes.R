@@ -25,10 +25,3 @@ test_that("pmbb_extract_genotypes works", {
   )
   expect_true(tibble::is_tibble(res))
 })
-
-test_that("filter_dataframe works", {
-  res <- filter_dataframe(dplyr::starwars, list(height = " > 100", eye_color = " == 'blue'"))
-  expect_true(inherits(filter_dataframe, "function")) 
-  expect_true(tibble::is_tibble(res))
-  expect_true(nrow(res) > 0)
-})

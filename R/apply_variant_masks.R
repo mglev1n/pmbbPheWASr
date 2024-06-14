@@ -14,10 +14,15 @@
 #' 
 #' @export
 #' @examples
-#' \dontrun{ 
-#' apply_variant_masks(ldlr_variants, masks = list(plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"), 
-#'                                                 common_0.01 = list(gnomAD_exome_ALL = "> 0.01"), 
-#'                                                 exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")))
+#' \dontrun{
+#' apply_variant_masks(
+#'   ldlr_variants,
+#'   masks = list(
+#'     plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
+#'     common_0.01 = list(gnomAD_exome_ALL = "> 0.01"),
+#'     exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")
+#'   )
+#' )
 #' }
 
 apply_variant_masks <- function(annotation_df, masks) {
@@ -40,4 +45,57 @@ apply_variant_masks <- function(annotation_df, masks) {
   names(filtered_dfs) <- names(masks)
   
   return(filtered_dfs)
+}
+
+#' Filter a Data Frame Based on Multiple Criteria
+#' 
+#' This function filters a data frame based on a list of column names and corresponding filter criteria.
+#' The filter criteria are provided as a list, where each element represents a column and its associated filter condition.
+#' The function applies the filter criteria to the specified columns and returns the filtered data frame.
+#' 
+#' @param df A data frame to be filtered.
+#' @param filter_list A list containing column names and their corresponding filter criteria.
+#'   Each element of the list should be named after the column to be filtered and contain the filter condition as a string.
+#'   For example: list(age = "> 30", city = "== 'New York'")
+#'   
+#' @return The filtered [tibble::tibble()] based on the provided filter criteria.
+#' 
+#' @import dplyr
+#' @import rlang
+#' @noRd
+#' @examples
+#' \dontrun{
+#' filter_dataframe(
+#'   ldlr_variants, 
+#'   filter_list = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"))
+#' }
+
+filter_dataframe <- function(df, filter_list) {
+  # Check if the input is a data frame
+  if (!is.data.frame(df)) {
+    abort("Input must be a data frame.")
+  }
+  
+  # Check if the filter list is a list
+  if (!is.list(filter_list)) {
+    abort("Filter criteria must be provided as a list.")
+  }
+  
+  # Iterate over each element in the filter list
+  for (col_filter in names(filter_list)) {
+    # Extract the filter criteria
+    filter_criteria <- filter_list[[col_filter]]
+    
+    # Check if the column exists in the data frame
+    if (!(col_filter %in% colnames(df))) {
+      warn(glue::glue("Column '{col_filter}' not found in the data frame. Skipping filter for this column."))
+      next
+    }
+    
+    # Apply the filter criteria to the specified column using {{}}
+    df <- df %>%
+      filter(!!parse_expr(paste0({{col_filter}}, filter_criteria)))
+  }
+  
+  return(df)
 }

@@ -118,9 +118,10 @@ awk_str_filter <- function(filename, filter_col, filter_str) {
   
 ```{r example-awk_str_filter, eval=FALSE}
 #' \dontrun{
-ldlr_variants <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
-               filter_col = "Gene.refGene",
-               filter_str = c("LDLR"))
+ldlr_variants <- awk_str_filter(
+  filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  filter_col = "Gene.refGene",
+  filter_str = c("LDLR"))
 #' }
 ```
   
@@ -146,8 +147,138 @@ test_that("awk_str_filter works", {
 })
 ```
 
-# Extract genotypes
+# Apply variant masks to annotation file
     
+The `apply_variant_masks` function applies variant mask criteria to a data frame containing variant annotations. The function can accept multiple sets of filter criteria, each defined as a list of column names and filter conditions. The resulting filtered data frames are returned as a named list.
+
+```{r function-apply_variant_masks}
+#' Apply variant masks to annotation file
+#' 
+#' This function applies variant mask criteria to a data frame containing variant annotations. The function can accept multiple sets of filter criteria, each defined as a list of column names and filter conditions. The resulting filtered data frames are returned as a named list.
+#' 
+#' @param annotation_df A data frame to be filtered.
+#' @param masks A named list of lists containing filter criteria.
+#'   Each element of the outer list should be named after the desired output name for the filtered data frame (eg. name of the variant mask).
+#'   Each inner list should contain the filter criteria for a specific set of columns.
+#'   For example: list(plof_0.001 = list(ExonicFunc.ensGene = "= stopgain", gnomAD_exome_ALL = "< 0.001"), common_0.01 = list(gnomAD_exome_ALL = "> 0.01"))
+#'   
+#' @return A named list of filtered [tibble::tibble()]s based on the provided filter criteria.
+#' 
+#' @export
+
+apply_variant_masks <- function(annotation_df, masks) {
+  # Check if the input is a data frame
+  if (!is.data.frame(annotation_df)) {
+    rlang::abort("Input must be a data frame.")
+  }
+  
+  # Check if the masks is a list
+  if (!is.list(masks)) {
+    rlang::abort("Masks must be provided as a list.")
+  }
+  
+  # Apply the filter criteria to the data frame for each mask
+  filtered_dfs <- purrr::map(masks, function(mask) {
+    filter_dataframe(annotation_df, mask)
+  })
+  
+  # Set the names of the filtered data frames based on the names of the masks
+  names(filtered_dfs) <- names(masks)
+  
+  return(filtered_dfs)
+}
+```
+  
+```{r example-apply_variant_masks, eval=FALSE}
+#' \dontrun{
+apply_variant_masks(
+  ldlr_variants,
+  masks = list(
+    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
+    common_0.01 = list(gnomAD_exome_ALL = "> 0.01"),
+    exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")
+  )
+)
+#' }
+```
+  
+```{r tests-apply_variant_masks}
+test_that("apply_variant_masks works", {
+  expect_true(inherits(apply_variant_masks, "function")) 
+})
+```
+
+```{r function-filter_dataframe}
+#' Filter a Data Frame Based on Multiple Criteria
+#' 
+#' This function filters a data frame based on a list of column names and corresponding filter criteria.
+#' The filter criteria are provided as a list, where each element represents a column and its associated filter condition.
+#' The function applies the filter criteria to the specified columns and returns the filtered data frame.
+#' 
+#' @param df A data frame to be filtered.
+#' @param filter_list A list containing column names and their corresponding filter criteria.
+#'   Each element of the list should be named after the column to be filtered and contain the filter condition as a string.
+#'   For example: list(age = "> 30", city = "== 'New York'")
+#'   
+#' @return The filtered [tibble::tibble()] based on the provided filter criteria.
+#' 
+#' @import dplyr
+#' @import rlang
+#' @noRd
+
+filter_dataframe <- function(df, filter_list) {
+  # Check if the input is a data frame
+  if (!is.data.frame(df)) {
+    abort("Input must be a data frame.")
+  }
+  
+  # Check if the filter list is a list
+  if (!is.list(filter_list)) {
+    abort("Filter criteria must be provided as a list.")
+  }
+  
+  # Iterate over each element in the filter list
+  for (col_filter in names(filter_list)) {
+    # Extract the filter criteria
+    filter_criteria <- filter_list[[col_filter]]
+    
+    # Check if the column exists in the data frame
+    if (!(col_filter %in% colnames(df))) {
+      warn(glue::glue("Column '{col_filter}' not found in the data frame. Skipping filter for this column."))
+      next
+    }
+    
+    # Apply the filter criteria to the specified column using {{}}
+    df <- df %>%
+      filter(!!parse_expr(paste0({{col_filter}}, filter_criteria)))
+  }
+  
+  return(df)
+}
+```
+  
+```{r example-filter_dataframe, eval=FALSE}
+#' \dontrun{
+filter_dataframe(
+  ldlr_variants, 
+  filter_list = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"))
+#' }
+```
+  
+```{r tests-filter_dataframe}
+test_that("filter_dataframe works", {
+  res <- filter_dataframe(dplyr::starwars, list(height = " > 100", eye_color = " == 'blue'"))
+  expect_true(inherits(filter_dataframe, "function")) 
+  expect_true(tibble::is_tibble(res))
+  expect_true(nrow(res) > 0)
+})
+```
+
+
+# Extract genotypes
+
+The `pmbb_extract_genotypes` function is a wrapper around `plink2` to extract genotypes from PMBB plink files. The function accepts the path to the plink files and the list of variant IDs to extract. The function returns a long-format tibble containing the extracted genotypes for each PMBB participant.
+
 ```{r function-pmbb_extract_genotypes}
 #' Extract genotypes from PMBB plink files
 #' 
@@ -217,11 +348,13 @@ pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col
   
 ```{r example-pmbb_extract_genotypes, eval=FALSE}
 #' \dontrun{
-pmbb_extract_genotypes(variant_df = ldlr_variants,
-                       variant_id_col = ID,
-                       effect_allele_col = Alt,
-                       plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-                       bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
+pmbb_extract_genotypes(
+  variant_df = ldlr_variants,
+  variant_id_col = ID,
+  effect_allele_col = Alt,
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+)
 #' }
 ```
   
@@ -254,127 +387,6 @@ test_that("pmbb_extract_genotypes works", {
 ```
     
 
-```{r function-filter_dataframe}
-#' Filter a Data Frame Based on Multiple Criteria
-#' 
-#' This function filters a data frame based on a list of column names and corresponding filter criteria.
-#' The filter criteria are provided as a list, where each element represents a column and its associated filter condition.
-#' The function applies the filter criteria to the specified columns and returns the filtered data frame.
-#' 
-#' @param df A data frame to be filtered.
-#' @param filter_list A list containing column names and their corresponding filter criteria.
-#'   Each element of the list should be named after the column to be filtered and contain the filter condition as a string.
-#'   For example: list(age = "> 30", city = "== 'New York'")
-#'   
-#' @return The filtered [tibble::tibble()] based on the provided filter criteria.
-#' 
-#' @import dplyr
-#' @import rlang
-#' @noRd
-
-filter_dataframe <- function(df, filter_list) {
-  # Check if the input is a data frame
-  if (!is.data.frame(df)) {
-    abort("Input must be a data frame.")
-  }
-  
-  # Check if the filter list is a list
-  if (!is.list(filter_list)) {
-    abort("Filter criteria must be provided as a list.")
-  }
-  
-  # Iterate over each element in the filter list
-  for (col_filter in names(filter_list)) {
-    # Extract the filter criteria
-    filter_criteria <- filter_list[[col_filter]]
-    
-    # Check if the column exists in the data frame
-    if (!(col_filter %in% colnames(df))) {
-      warn(glue::glue("Column '{col_filter}' not found in the data frame. Skipping filter for this column."))
-      next
-    }
-    
-    # Apply the filter criteria to the specified column using {{}}
-    df <- df %>%
-      filter(!!parse_expr(paste0({{col_filter}}, filter_criteria)))
-  }
-  
-  return(df)
-}
-```
-  
-```{r example-filter_dataframe, eval=FALSE}
-#' \dontrun{ 
-filter_dataframe(ldlr_variants, filter_list = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"))
-#' }
-```
-  
-```{r tests-filter_dataframe}
-test_that("filter_dataframe works", {
-  res <- filter_dataframe(dplyr::starwars, list(height = " > 100", eye_color = " == 'blue'"))
-  expect_true(inherits(filter_dataframe, "function")) 
-  expect_true(tibble::is_tibble(res))
-  expect_true(nrow(res) > 0)
-})
-```
-
-# Apply variant masks to annotation file
-    
-```{r function-apply_variant_masks}
-#' Apply variant masks to annotation file
-#' 
-#' This function applies variant mask criteria to a data frame containing variant annotations. The function can accept multiple sets of filter criteria, each defined as a list of column names and filter conditions. The resulting filtered data frames are returned as a named list.
-#' 
-#' @param annotation_df A data frame to be filtered.
-#' @param masks A named list of lists containing filter criteria.
-#'   Each element of the outer list should be named after the desired output name for the filtered data frame (eg. name of the variant mask).
-#'   Each inner list should contain the filter criteria for a specific set of columns.
-#'   For example: list(plof_0.001 = list(ExonicFunc.ensGene = "= stopgain", gnomAD_exome_ALL = "< 0.001"), common_0.01 = list(gnomAD_exome_ALL = "> 0.01"))
-#'   
-#' @return A named list of filtered [tibble::tibble()]s based on the provided filter criteria.
-#' 
-#' @export
-
-apply_variant_masks <- function(annotation_df, masks) {
-  # Check if the input is a data frame
-  if (!is.data.frame(annotation_df)) {
-    rlang::abort("Input must be a data frame.")
-  }
-  
-  # Check if the masks is a list
-  if (!is.list(masks)) {
-    rlang::abort("Masks must be provided as a list.")
-  }
-  
-  # Apply the filter criteria to the data frame for each mask
-  filtered_dfs <- purrr::map(masks, function(mask) {
-    filter_dataframe(annotation_df, mask)
-  })
-  
-  # Set the names of the filtered data frames based on the names of the masks
-  names(filtered_dfs) <- names(masks)
-  
-  return(filtered_dfs)
-}
-```
-  
-```{r example-apply_variant_masks, eval=FALSE}
-#' \dontrun{ 
-apply_variant_masks(ldlr_variants, masks = list(plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"), 
-                                                common_0.01 = list(gnomAD_exome_ALL = "> 0.01"), 
-                                                exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")))
-#' }
-```
-  
-```{r tests-apply_variant_masks}
-test_that("apply_variant_masks works", {
-  expect_true(inherits(apply_variant_masks, "function")) 
-})
-```
-  
-
-
-  
 <!--
 # There can be development actions
 
@@ -392,4 +404,3 @@ These are only included in the present flat template file, their content will no
 # Execute in the console directly
 fusen::inflate(flat_file = "dev/flat_pmbb_phewas.Rmd", vignette_name = "Get started")
 ```
-

@@ -37,10 +37,12 @@ This function is a wrapper around \code{plink2} to extract genotypes from PMBB p
 }
 \examples{
 \dontrun{
-pmbb_extract_genotypes(variant_df = ldlr_variants,
-                       variant_id_col = ID,
-                       effect_allele_col = Alt,
-                       plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-                       bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
+pmbb_extract_genotypes(
+  variant_df = ldlr_variants,
+  variant_id_col = ID,
+  effect_allele_col = Alt,
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+)
 }
 }
