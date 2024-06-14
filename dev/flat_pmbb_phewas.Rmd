@@ -102,10 +102,10 @@ awk_str_filter <- function(filename, filter_col, filter_str) {
     filtered_dt <- data.table::fread(
         text = result$stdout,
         sep = "\t",
-        header = FALSE,
+        header = TRUE,
         stringsAsFactors = FALSE,
-        quote = "",
-        colClasses = rep("character", length(col_names))
+        quote = "", 
+        na.strings = "."
     )
 
     # Convert the data.table to a tibble
@@ -117,22 +117,203 @@ awk_str_filter <- function(filename, filter_col, filter_str) {
 ```
   
 ```{r example-awk_str_filter}
-awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+ldlr_variants <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
                filter_col = "Gene.refGene",
-               filter_str = c("LDLR", "PCSK9"))
+               filter_str = c("LDLR"))
 ```
   
 ```{r tests-awk_str_filter}
 test_that("awk_str_filter works", {
-  res <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  
+    ldlr_file <- "ldlr_df.tsv"
+  if (!file.exists(ldlr_file)) {
+    # The path to use during dev in the flat file
+    ldlr_file <- file.path("tests", "testthat", ldlr_file)
+    if (!file.exists(ldlr_file)) {
+      stop(ldlr_file, " does not exist")
+    }
+  }
+
+  ldlr_variants <- data.table::fread(ldlr_file)
+  
+  res <- awk_str_filter(filename = ldlr_file,
                filter_col = "Gene.refGene",
                filter_str = c("LDLR"))
   expect_true(inherits(awk_str_filter, "function")) 
   expect_true(tibble::is_tibble(res))
 })
 ```
-  
 
+# Extract genotypes
+    
+```{r function-pmbb_extract_genotypes}
+#' Extract genotypes from PMBB plink files
+#' 
+#' This function is a wrapper around `plink2` to extract genotypes from PMBB plink files. The function accepts the path to the plink files and the list of variant IDs to extract. The function returns a long-format [tibble::tibble()] containing the extracted genotypes for each PMBB participant.
+#' 
+#' @param variant_df A data frame containing the variant information.
+#' @param variant_id_col The name of the column in `variant_df` that contains the variant IDs.
+#' @param effect_allele_col The name of the column in `variant_df` that contains the effect alleles.
+#' @param plink_bin The path to the `plink2` binary executable.
+#' @param bfile The prefix of the plink binary files (without the file extension).
+#' @param threads The number of threads to use for parallel processing (default: 1).
+#' @param memory The amount of memory (in MB) to allocate for `plink2` (default: 8000).
+#' 
+#' @return A long-format [tibble::tibble()] containing the extracted genotypes for each PMBB participant.
+#' 
+#' @export
+pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col, plink_bin, bfile, threads = 1, memory = 8000) {
+  
+    cli::cli_progress_step("Extracting genotypes from {.file {bfile}}")
+  
+    allele_file <- fs::file_temp()
+    genotype_file <- fs::path(fs::path_temp(), "genotypes")
+    
+    allele_table <- variant_df %>%
+        dplyr::select({{variant_id_col}}, {{effect_allele_col}}) 
+    
+   allele_table %>%
+        data.table::fwrite(allele_file, col.names = FALSE, sep = "\t")
+    
+    plink_result <- processx::run(
+        command = plink_bin,
+        args = c(
+            "--bfile", bfile,
+            "--threads", threads,
+            "--memory", memory,
+            "--snps", variant_df %>% dplyr::pull({{variant_id_col}}),
+            "--export-allele", allele_file,
+            "--export", "A",
+            "--out", genotype_file
+        ),
+        error_on_status = TRUE
+    )
+    
+    if (plink_result$status != 0) {
+        cli::cli_abort("Error executing plink command. Status: {plink_result$stderr}")
+    }
+    
+    genotype_raw_file <- paste0(genotype_file, ".raw")
+    
+    if (!file.exists(genotype_raw_file)) {
+        cli::cli_abort("Genotype file not found: {genotype_raw_file}")
+    }
+    
+    genotype_df <- data.table::fread(genotype_raw_file)
+    
+    genotype_tbl <- genotype_df %>%
+        tibble::as_tibble() %>%
+        tidytable::pivot_longer(cols = -c(`FID`, `IID`, `PAT`, `MAT`, `SEX`, `PHENOTYPE`),
+                            names_to = "variant_id",
+                            values_to = "genotype") %>%
+        dplyr::select(PMBB_ID = IID, variant_id, genotype) %>%
+      dplyr::as_tibble()
+    
+    return(genotype_tbl)
+}
+```
+  
+```{r example-pmbb_extract_genotypes}
+#' \dontrun{
+pmbb_extract_genotypes(variant_df = ldlr_variants,
+                       variant_id_col = ID,
+                       effect_allele_col = Alt,
+                       plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+                       bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
+#' }
+```
+  
+```{r tests-pmbb_extract_genotypes}
+test_that("pmbb_extract_genotypes works", {
+  expect_true(inherits(pmbb_extract_genotypes, "function"))
+  
+  testthat::skip_if(testthat:::on_ci() | testthat:::on_cran())
+  
+  ldlr_file <- "ldlr_df.tsv"
+  if (!file.exists(ldlr_file)) {
+    # The path to use during dev in the flat file
+    ldlr_file <- file.path("tests", "testthat", ldlr_file)
+    if (!file.exists(ldlr_file)) {
+      stop(ldlr_file, " does not exist")
+    }
+  }
+
+  ldlr_variants <- data.table::fread(ldlr_file)
+
+  res <- pmbb_extract_genotypes(
+    variant_df = ldlr_variants,
+    variant_id_col = ID,
+    effect_allele_col = Alt,
+    plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+  )
+  expect_true(tibble::is_tibble(res))
+})
+```
+    
+
+```{r function-filter_dataframe}
+#' Filter a Data Frame Based on Multiple Criteria
+#' 
+#' This function filters a data frame based on a list of column names and corresponding filter criteria.
+#' The filter criteria are provided as a list, where each element represents a column and its associated filter condition.
+#' The function applies the filter criteria to the specified columns and returns the filtered data frame.
+#' 
+#' @param df A data frame to be filtered.
+#' @param filter_list A list containing column names and their corresponding filter criteria.
+#'   Each element of the list should be named after the column to be filtered and contain the filter condition as a string.
+#'   For example: list(age = "> 30", city = "== 'New York'")
+#'   
+#' @return The filtered [tibble::tibble()] based on the provided filter criteria.
+#' 
+#' @import dplyr
+#' @import rlang
+#' @noRd
+
+filter_dataframe <- function(df, filter_list) {
+  # Check if the input is a data frame
+  if (!is.data.frame(df)) {
+    abort("Input must be a data frame.")
+  }
+  
+  # Check if the filter list is a list
+  if (!is.list(filter_list)) {
+    abort("Filter criteria must be provided as a list.")
+  }
+  
+  # Iterate over each element in the filter list
+  for (col_filter in names(filter_list)) {
+    # Extract the filter criteria
+    filter_criteria <- filter_list[[col_filter]]
+    
+    # Check if the column exists in the data frame
+    if (!(col_filter %in% colnames(df))) {
+      warn(glue::glue("Column '{col_filter}' not found in the data frame. Skipping filter for this column."))
+      next
+    }
+    
+    # Apply the filter criteria to the specified column using {{}}
+    df <- df %>%
+      filter(!!parse_expr(paste0({{col_filter}}, filter_criteria)))
+  }
+  
+  return(df)
+}
+```
+  
+```{r example-filter_dataframe, eval=FALSE}
+filter_dataframe(dplyr::starwars, list(height = " > 100", eye_color = " == 'blue'"))
+```
+  
+```{r tests-filter_dataframe}
+test_that("filter_dataframe works", {
+  res <- filter_dataframe(dplyr::starwars, list(height = " > 100", eye_color = " == 'blue'"))
+  expect_true(inherits(filter_dataframe, "function")) 
+  expect_true(tibble::is_tibble(res))
+  expect_true(nrow(res) > 0)
+})
+```
+  
 <!--
 # There can be development actions
 

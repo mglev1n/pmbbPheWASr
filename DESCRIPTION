@@ -12,9 +12,15 @@ BugReports: https://github.com/mglev1n/pmbbPheWASr/issues
 Imports: 
     cli,
     data.table,
+    dplyr,
+    fs,
+    glue,
     magrittr,
+    PheWAS,
     processx,
-    tibble
+    rlang,
+    tibble,
+    tidytable
 Suggests: 
     knitr,
     rmarkdown,

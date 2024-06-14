@@ -1,0 +1,11 @@
+ID	Alt	Gene.refGene	ExonicFunc.ensGene	gnomAD_exome_ALL
+19:11089552:G:C	C	LDLR	nonsynonymous SNV	8.196e-6
+19:11089560:G:C	C	LDLR	nonsynonymous SNV	NA
+19:11089600:G:A	A	LDLR	nonsynonymous SNV	0
+19:11089604:C:T	T	LDLR	nonsynonymous SNV	4.146e-6
+19:11089605:G:A	A	LDLR	synonymous SNV	NA
+19:11089606:G:A	A	LDLR	nonsynonymous SNV	8e-4
+19:11089611:T:C	C	LDLR	synonymous SNV	NA
+19:11089612:G:T	T	LDLR	nonsynonymous SNV	8.339e-6
+19:11089660:C:G	G	LDLR	NA	NA
+19:11089661:G:A	A	LDLR	NA	1.032e-5

@@ -15,9 +15,9 @@
 #' @export
 #'
 #' @examples
-#' awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+#' ldlr_variants <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
 #'                filter_col = "Gene.refGene",
-#'                filter_str = c("LDLR", "PCSK9"))
+#'                filter_str = c("LDLR"))
 awk_str_filter <- function(filename, filter_col, filter_str) {
     # Check if the file exists
     if (!file.exists(filename)) {
@@ -56,10 +56,10 @@ awk_str_filter <- function(filename, filter_col, filter_str) {
     filtered_dt <- data.table::fread(
         text = result$stdout,
         sep = "\t",
-        header = FALSE,
+        header = TRUE,
         stringsAsFactors = FALSE,
-        quote = "",
-        colClasses = rep("character", length(col_names))
+        quote = "", 
+        na.strings = "."
     )
 
     # Convert the data.table to a tibble

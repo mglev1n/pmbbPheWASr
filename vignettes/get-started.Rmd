@@ -48,15 +48,43 @@ The `awk_str_filter` function can be used to filter arbitrary rows from a tab-de
   
 
 ```{r example-awk_str_filter}
-awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+ldlr_variants <- awk_str_filter(filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
                filter_col = "Gene.refGene",
-               filter_str = c("LDLR", "PCSK9"))
+               filter_str = c("LDLR"))
+```
+
+  
+
+# Extract genotypes
+
+    
+
+  
+
+```{r example-pmbb_extract_genotypes}
+#' \dontrun{
+pmbb_extract_genotypes(variant_df = ldlr_variants,
+                       variant_id_col = ID,
+                       effect_allele_col = Alt,
+                       plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+                       bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
+#' }
+```
+
+  
+
+    
+
+
+  
+
+```{r example-filter_dataframe, eval = FALSE}
+filter_dataframe(dplyr::starwars, list(height = " > 100", eye_color = " == 'blue'"))
 ```
 
   
 
   
-
 <!--
 
 # There can be development actions

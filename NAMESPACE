@@ -2,6 +2,8 @@
 
 export("%>%")
 export(awk_str_filter)
-export(pmbb_filter_exome_annotations_gene)
+export(pmbb_extract_genotypes)
+import(dplyr)
+import(rlang)
 importFrom(magrittr,"%>%")
 importFrom(tibble,tibble)
