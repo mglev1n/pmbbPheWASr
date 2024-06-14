@@ -564,6 +564,8 @@ test_that("pmbb_extract_genotype_masks works", {
 # PheWAS convenience functions
 
 ## Format PMBB phecode data
+
+The `pmbb_format_phecodes` function takes a path to a PMBB phecode file and applies a case threshold to categorize individuals as cases or controls. The function returns a tibble with `PMBB_ID` and phecodes as columns, with TRUE/FALSE values for each phecode column.
     
 ```{r function-pmbb_format_phecodes}
 #' Format PMBB phecode data
@@ -586,7 +588,9 @@ pmbb_format_phecodes <- function(phecode_file, phecode_case_threshold = 2){
     dplyr::mutate(case = dplyr::if_else(value >= phecode_case_threshold, TRUE, FALSE)) %>%
     tidytable::select(PMBB_ID, name, case) %>%
     tidytable::pivot_wider(names_from = name, values_from = case, values_fill = FALSE) %>%
-    tibble::as_tibble()
+    tibble::as_tibble() %>%
+    # unique() %>%
+    assertr::assert(assertr::is_uniq, PMBB_ID)
 }
 ```
   
@@ -614,6 +618,105 @@ test_that("pmbb_format_phecodes works", {
 })
 ```
   
+# pmbb_format_covariates
+    
+```{r function-pmbb_format_covariates}
+#' Format covariate data for PheWAS
+#'
+#' This function reads and processes covariate files for use in PheWAS analysis.It checks if the specified covariate files exist, reads them, and performs the necessary data formatting and validation. If multiple files are specified they will be joined together from left-to-right, keeping duplicated columns from the left-most file.
+#'
+#' @param covariate_files Path to PMBB covariate file(s) used to run PheWAS. If multiple files are provided, they will be joined by `PMBB_ID`, and values for duplicated columns will be preserved from the from the file that is specified earlier.
+#' @param covariate_cols Vector of columns in the covariate file that should be used as covariates in the PheWAS
+#' @param covariate_population_col Column containing population labels in the covariate file, required if `populations` is not `ALL`
+#' @param populations A character vector of populations to run PheWAS on. Default is `c("ALL")`
+#'
+#' @return A formatted covariate dataframe with selected columns and unique PMBB_IDs.
+#'
+#' 
+#' @noRd
+pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_population_col, populations) {
+  
+  # Check if covariate_files exists - this may include multiple files
+  covariate_files_exists <- purrr::map(covariate_files, file.exists) %>%
+    unlist()
+
+  if (FALSE %in% purrr::map(covariate_files, file.exists)) {
+    missing_covariates_files <- covariate_files[!covariate_files_exists]
+    cli::cli_abort("{missing_covariates_files} does not exist")
+  }
+  
+  # Check if populations is a character vector
+  if (!is.character(populations)) {
+    cli::cli_abort("{.arg populations} must be a character vector")
+  }
+
+  # Check if populations contains values other than "ALL"
+  populations <- unique(populations)
+  if (length(sum(stringr::str_detect(populations, "ALL")))/length(populations) != 1) {
+    if(rlang::quo_is_null(rlang::enquo(covariate_population_col))) {
+      cli::cli_abort("{.arg covariate_population_col} must be provided if {.arg populations} contains values other than {.val ALL}")
+    }
+  }
+
+  cli::cli_progress_step("Reading covariate file(s): {covariate_files}")
+
+  covariate_df <- purrr::map(covariate_files, \(x) vroom::vroom(x, show_col_types = FALSE) %>% unique()) %>%
+    purrr::reduce(dplyr::left_join, by = c("PMBB_ID"), suffix = c("", "_duplicated")) %>%
+    select(-tidyselect::ends_with("_duplicated")) %>%
+    unique()
+
+  if (!rlang::quo_is_null(rlang::enquo(covariate_population_col))) {
+
+    # TODO need better checking that the covariate_population_col is in the covariate_df
+
+    covariate_populations <- unique(covariate_df %>% dplyr::pull({{ covariate_population_col }}))
+    missing_populations <- setdiff(populations, covariate_populations)
+    missing_populations <- purrr::discard(missing_populations, function(x) x == "ALL")
+
+    if(length(missing_populations > 0)) {
+      cli::cli_abort("Population(s) {.val {missing_populations}} not found in covariate file")
+    }
+
+    cli::cli_alert_info("All populations were found in the covariates file")
+  }
+
+  covariate_df %>%
+    dplyr::select(PMBB_ID, {{ covariate_cols }}) %>%
+    assertr::assert(assertr::is_uniq, PMBB_ID)
+
+}
+```
+  
+```{r example-pmbb_format_covariates, eval=FALSE}
+#' \dontrun{
+pmbb_format_covariates(
+  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+  populations = c("ALL", "EUR"),
+  covariate_population_col = Class,
+  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
+)
+#' }
+
+```
+  
+```{r tests-pmbb_format_covariates}
+test_that("pmbb_format_covariates works", {
+  expect_true(inherits(pmbb_format_covariates, "function")) 
+  
+  testthat::skip_if(testthat:::on_ci() | testthat:::on_cran())
+  
+  pmbb_covariates_res <- pmbb_format_covariates(
+  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+  populations = c("ALL", "EUR"),
+  covariate_population_col = Class,
+  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
+)
+  
+  expect_true(inherits(pmbb_covariates_res, "data.frame"))
+  
+})
+```
+  
 
 ## Run a PheWAS
 
@@ -625,69 +728,120 @@ The `run_pmbb_phewas` function runs a PheWAS on the PMBB data, using the results
 #' This function runs a PheWAS on PMBB data, using genotype information and paths to PMBB files containing phenotype and covariate data. The function ideally accepts genotype information from the `pmbb_extract_genotype_masks` function, but can accept any genotype information of the format `list(mask_name = list(genotypes = data.frame(PMBB_ID = character(), genotype = character())))`
 #' 
 #' @param mask_genotypes_list A named list, where each element contains a named element called `genotypes` which contains `PMBB_ID` and `genotype` columns.
-#' @param phecode_file Path to PMBB phenotype file used to run PheWAS
-#' @param covariate_file Path to PMBB covariate file used to run PheWAS
-#' @param demographics_file Path to PMBB demographics file used to run PheWAS
-#' @param populations A character vector of populations to run PheWAS on. Default is `c("EUR", "AFR", "ALL")`
+#' @param phecode_file Path to PMBB phenotype file or a dataframe containing phenotype data used to run PheWAS
+#' @param covariate_files Path to PMBB covariate file(s) or a dataframe containing covariate data used to run PheWAS. If multiple files are provided, they will be joined by `PMBB_ID`, and values for duplicated columns will be preserved from the from the file that is specified earlier.
+#' @param populations A character vector of populations to run PheWAS on. Default is `c("ALL")`
+#' @param covariate_cols Vector of columns in the covariate file or dataframe that should be used as covariates in the PheWAS
+#' @param covariate_population_col Column containing population labels in the covariate file or dataframe, required if `populations` is not `ALL`
 #' @param phenotype_case_count The minimum number of codes required to be considered a case (Default: 2)
 #' @param ... Additional arguments passed to [PheWAS::phewas()]
 
 #' @return A list containing dataframes including the results of the PheWAS for each population
 #' 
 #' @export
-run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_file, demographics_file, populations = c("EUR", "AFR", "ALL", phenotype_case_count = 2, ...)) {
+run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, populations = c("ALL"), covariate_cols, covariate_population_col = NULL, phenotype_case_count = 2, ...) {
   # Check if mask_genotypes_list is a list
   if (!is.list(mask_genotypes_list)) {
-    cli::cli_abort("`mask_genotypes_list` must be a list")
+    cli::cli_abort("{.arg mask_genotypes_list} must be a list")
   }
 
-  # Check if phenotype_file exists
-  if (!file.exists(phecode_file)) {
-    cli::cli_abort("{phenotype_file} does not exist")
+  # Check if phenotype_file is a file path or a dataframe
+  if (is.character(phecode_file)) {
+    if (!file.exists(phecode_file)) {
+      cli::cli_abort("{phenotype_file} does not exist")
+    }
+    phecode_df <- pmbb_format_phecodes(phecode_file, phenotype_case_count)
+  } else if (is.data.frame(phecode_file)) {
+    phecode_df <- phecode_file
+  } else {
+    cli::cli_abort("{.arg phecode_file} must be a file path or a dataframe")
   }
-
-  # Check if covariate_file exists
-  if (!file.exists(covariate_file)) {
-    cli::cli_abort("{covariate_file} does not exist")
+  
+  # Format covariate data
+  if (is.character(covariate_files)) {
+    covariate_df <- pmbb_format_covariates(covariate_files, covariate_cols = {{covariate_cols}}, covariate_population_col, populations)
+  } else if (is.data.frame(covariate_files)) {
+    covariate_df <- covariate_files
+  } else {
+    cli::cli_abort("{.arg covariate_files} must be file paths or a dataframe")
   }
-
-  # Check if demographics_file exists
-  if (!file.exists(demographics_file)) {
-    cli::cli_abort("{demographics_file}  does not exist")
-  }
-
-  # Check if populations is a character vector
-  if (!is.character(populations)) {
-    cli::cli_abort("populations must be a character vector")
-  }
-
-  # Check if populations is not empty
-  if (length(populations) == 0) {
-    cli::cli_abort("populations must not be empty")
-  }
-
-  # Read phenotype file and apply phenotype_case_count
+  
+  # Run PheWAS
+  cli::cli_progress_step("Running PheWAS")
+  
+  phewas_results <- purrr::map(mask_genotypes_list, \(genotypes_list) {
+    population_phewas_res <- purrr::map(populations, \(population) {
+      additive <- dplyr::if_else(genotypes_list$mask_name == "single", TRUE, FALSE)
+      
+      if(population != "ALL") {
+        covariate_df <- covariate_df %>%
+          dplyr::filter({{covariate_population_col}} == population) %>%
+          dplyr::select(-{{covariate_population_col}})
+      } else {
+        covariate_df <- covariate_df %>%
+          dplyr::select(-{{covariate_population_col}})
+      }
+      
+      PheWAS::phewas(
+        genotypes = genotypes_list$genotypes,
+        phenotypes = phenotypes,
+        covariates = covariate_df,
+        additive.genotypes = additive,
+        ...
+      )
+    }) %>%
+      purrr::set_names(populations)
+  }) %>%
+    purrr::set_names(names(mask_genotypes_list))
+  
+  return(phewas_results)
   
 }
 ```
   
-```{r example-run_pmbb_phewas}
+```{r example-run_pmbb_phewas, eval=FALSE}
 #' \dontrun {
 run_pmbb_phewas(
-  mask_genotypes_list = ldlr_mask_res,
-  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
-  covariate_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt",
-  demographics_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_demographics.txt",
-  populations = c("EUR", "AFR", "ALL")
+  mask_genotypes_list = ldlr_mask_res %>% head(1),
+  phecode_file = pmbb_phecodes %>% select(1:10),
+  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+  populations = c("ALL", "EUR"),
+  covariate_population_col = "Class",
+  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
 )
 #' }
-
 ```
   
 ```{r tests-run_pmbb_phewas}
 test_that("run_pmbb_phewas works", {
-  expect_true(inherits(run_pmbb_phewas, "function")) 
-  
+  expect_true(inherits(run_pmbb_phewas, "function"))
+
+  testthat::skip_if(testthat:::on_ci() | testthat:::on_cran())
+
+  ldlr_mask_res <- pmbb_extract_genotype_masks(
+    gene = "LDLR",
+    annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+    gene_col = "Gene.refGene",
+    masks = list(
+      plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
+      rare_0.000001 = list(gnomAD_exome_ALL = "< 0.000001")
+    ),
+    mask_operator = list(
+      plof_0.001 = "burden",
+      rare_0.000001 = "single"
+    ),
+    variant_id_col = ID,
+    effect_allele_col = Alt,
+    plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+  )
+
+  phewas_res <- run_pmbb_phewas(
+    mask_genotypes_list = ldlr_mask_res,
+    phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+    covariate_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.2/PMBB-Release-2020-2.2_phenotype_covariates.txt",
+    populations = c("EUR", "AFR", "ALL")
+  )
 })
 ```
   
