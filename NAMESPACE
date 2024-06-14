@@ -3,6 +3,7 @@
 export("%>%")
 export(apply_variant_masks)
 export(awk_str_filter)
+export(pmbb_extract_genotype_masks)
 export(pmbb_extract_genotypes)
 import(dplyr)
 import(rlang)

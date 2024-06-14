@@ -16,12 +16,12 @@ test_that("pmbb_extract_genotypes works", {
 
   ldlr_variants <- data.table::fread(ldlr_file)
 
-  res <- pmbb_extract_genotypes(
+  ldlr_genotype_res <- pmbb_extract_genotypes(
     variant_df = ldlr_variants,
     variant_id_col = ID,
     effect_allele_col = Alt,
     plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
     bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
   )
-  expect_true(tibble::is_tibble(res))
+  expect_true(tibble::is_tibble(ldlr_genotype_res))
 })

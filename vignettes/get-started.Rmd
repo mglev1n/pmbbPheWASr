@@ -93,7 +93,9 @@ filter_dataframe(
 
   
 
-# Extract genotypes
+# Extracting genotypes
+
+## Single list extraction
 
 The `pmbb_extract_genotypes` function is a wrapper around `plink2` to extract genotypes from PMBB plink files. The function accepts the path to the plink files and the list of variant IDs to extract. The function returns a long-format tibble containing the extracted genotypes for each PMBB participant.
 
@@ -114,7 +116,38 @@ pmbb_extract_genotypes(
 
   
 
+## Extract genotypes based on masks 
+
+The `pmbb_extract_genotype_masks` function extracts genotypes for a subset of participants based on a set of masks. This function wraps `awk_str_filter`, `apply_variant_masks`, and `pmbb_extract_genotypes` to extract genotypes for PMBB participants based on a set of masks. 
     
+
+
+  
+
+```{r example-pmbb_extract_genotype_masks, eval = FALSE}
+#' \dontrun{
+pmbb_extract_genotype_masks(
+  gene = "LDLR",
+  annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  gene_col = "Gene.refGene",
+  masks = list(
+    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
+    rare_0.000001 = list(gnomAD_exome_ALL = "< 0.000001")
+  ),
+  mask_operator = list(
+    plof_0.001 = "burden",
+    rare_0.000001 = "single"
+  ),
+  variant_id_col = ID,
+  effect_allele_col = Alt,
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
+#' }
+```
+
+  
+
+  
 
 <!--
 

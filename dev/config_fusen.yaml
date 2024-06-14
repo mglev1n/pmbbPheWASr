@@ -4,11 +4,13 @@ flat_pmbb_phewas.Rmd:
   R:
   - R/apply_variant_masks.R
   - R/awk_str_filter.R
+  - R/pmbb_extract_genotype_masks.R
   - R/pmbb_extract_genotypes.R
   tests:
   - tests/testthat/test-awk_str_filter.R
   - tests/testthat/test-apply_variant_masks.R
   - tests/testthat/test-pmbb_extract_genotypes.R
+  - tests/testthat/test-pmbb_extract_genotype_masks.R
   vignettes: vignettes/get-started.Rmd
   inflate:
     flat_file: dev/flat_pmbb_phewas.Rmd

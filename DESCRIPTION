@@ -19,6 +19,7 @@ Imports:
     processx,
     purrr,
     rlang,
+    stringr,
     tibble,
     tidytable
 Suggests: 
