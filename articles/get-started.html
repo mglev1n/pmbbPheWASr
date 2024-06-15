@@ -217,9 +217,28 @@ function and paths to PMBB files containing phenotype and covariate
 data.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co">#' \dontrun{</span></span>
-<span><span class="fu"><a href="../reference/run_pmbb_phewas.html">run_pmbb_phewas</a></span><span class="op">(</span></span>
+<span><span class="co"># Extract genotypes for a series of masks</span></span>
+<span><span class="va">ldlr_mask_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/pmbb_extract_genotype_masks.html">pmbb_extract_genotype_masks</a></span><span class="op">(</span></span>
+<span>  gene <span class="op">=</span> <span class="st">"LDLR"</span>,</span>
+<span>  annotation_file <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt"</span>,</span>
+<span>  gene_col <span class="op">=</span> <span class="st">"Gene.refGene"</span>,</span>
+<span>  masks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    plof_0.001 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ExonicFunc.ensGene <span class="op">=</span> <span class="st">"== 'stopgain'"</span>, gnomAD_exome_ALL <span class="op">=</span> <span class="st">"&lt; 0.001"</span><span class="op">)</span>,</span>
+<span>    rare_0.000001 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>gnomAD_exome_ALL <span class="op">=</span> <span class="st">"&lt; 0.000001"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  mask_operator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    plof_0.001 <span class="op">=</span> <span class="st">"burden"</span>,</span>
+<span>    rare_0.000001 <span class="op">=</span> <span class="st">"single"</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  variant_id_col <span class="op">=</span> <span class="va">ID</span>,</span>
+<span>  effect_allele_col <span class="op">=</span> <span class="va">Alt</span>,</span>
+<span>  plink_bin <span class="op">=</span> <span class="st">"/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2"</span>,</span>
+<span>  bfile <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Run a PheWAS</span></span>
+<span><span class="va">phewas_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_pmbb_phewas.html">run_pmbb_phewas</a></span><span class="op">(</span></span>
 <span>  mask_genotypes_list <span class="op">=</span> <span class="va">ldlr_mask_res</span>,</span>
-<span>  phecode_file <span class="op">=</span> <span class="va">pmbb_phecodes</span>,</span>
+<span>  phecode_file <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt"</span>,</span>
 <span>  covariate_files <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt"</span>, <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"</span><span class="op">)</span>,</span>
 <span>  populations <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ALL"</span>, <span class="st">"EUR"</span><span class="op">)</span>,</span>
 <span>  covariate_population_col <span class="op">=</span> <span class="va">Class</span>,</span>
