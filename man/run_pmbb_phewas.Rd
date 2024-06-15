@@ -40,9 +40,28 @@ This function runs a PheWAS on PMBB data, using genotype information and paths t
 }
 \examples{
 \dontrun{
-run_pmbb_phewas(
+# Extract genotypes for a series of masks
+ldlr_mask_res <- pmbb_extract_genotype_masks(
+  gene = "LDLR",
+  annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  gene_col = "Gene.refGene",
+  masks = list(
+    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
+    rare_0.000001 = list(gnomAD_exome_ALL = "< 0.000001")
+  ),
+  mask_operator = list(
+    plof_0.001 = "burden",
+    rare_0.000001 = "single"
+  ),
+  variant_id_col = ID,
+  effect_allele_col = Alt,
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
+
+# Run a PheWAS
+phewas_res <- run_pmbb_phewas(
   mask_genotypes_list = ldlr_mask_res,
-  phecode_file = pmbb_phecodes,
+  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
   populations = c("ALL", "EUR"),
   covariate_population_col = Class,

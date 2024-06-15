@@ -6,7 +6,7 @@
 #'
 #' @param covariate_files Path to PMBB covariate file(s) used to run PheWAS. If multiple files are provided, they will be joined by `PMBB_ID`, and values for duplicated columns will be preserved from the from the file that is specified earlier.
 #' @param covariate_cols Vector of columns in the covariate file that should be used as covariates in the PheWAS
-#' @param covariate_population_col Column containing population labels in the covariate file, required if `populations` is not `ALL`
+#' @param covariate_population_col Column containing population labels in the covariate file, required if `populations` is not `"ALL"`
 #' @param populations A character vector of populations to run PheWAS on. Default is `c("ALL")`
 #'
 #' @return A formatted covariate dataframe with selected columns and unique PMBB_IDs.
