@@ -20,6 +20,7 @@ Imports:
     PheWAS,
     processx,
     purrr,
+    quarto,
     rlang,
     stringr,
     tibble,
