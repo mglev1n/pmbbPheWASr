@@ -70,7 +70,7 @@ awk_str_filter <- function(filename, filter_col, filter_str) {
         cli::cli_abort("File does not exist: {filename}")
     }
     
-    cli::cli_progress_step("Extracting '{filter_str}' from column '{filter_col}' in {.file {filename}}")
+    cli::cli_progress_step("Extracting '{filter_str}' from column '{filter_col}' in {.val {filename}}")
   
     # Determine the column index based on the filter_col
     header <- readLines(filename, n = 1)
@@ -299,7 +299,7 @@ The `pmbb_extract_genotypes` function is a wrapper around `plink2` to extract ge
 #' @export
 pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col, plink_bin, bfile, threads = 1, memory = 8000) {
   
-    cli::cli_progress_step("Extracting genotypes from {.file {bfile}}")
+    cli::cli_progress_step("Extracting genotypes from {.val {bfile}}")
   
     allele_file <- fs::file_temp()
     genotype_file <- fs::path(fs::path_temp(), "genotypes")
@@ -867,7 +867,7 @@ test_that("run_pmbb_phewas works", {
   suppressWarnings(
     phewas_res <- run_pmbb_phewas(
       mask_genotypes_list = ldlr_mask_res %>% head(2),
-      phecode_file = pmbb_phecodes %>% dplyr::select(1:10) %>% head(1000),
+      phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(10000),
       covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
       populations = c("ALL", "EUR"),
       covariate_population_col = Class,

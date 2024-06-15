@@ -27,7 +27,7 @@ awk_str_filter <- function(filename, filter_col, filter_str) {
         cli::cli_abort("File does not exist: {filename}")
     }
     
-    cli::cli_progress_step("Extracting '{filter_str}' from column '{filter_col}' in {.file {filename}}")
+    cli::cli_progress_step("Extracting '{filter_str}' from column '{filter_col}' in {.val {filename}}")
   
     # Determine the column index based on the filter_col
     header <- readLines(filename, n = 1)

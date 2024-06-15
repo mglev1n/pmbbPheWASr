@@ -27,7 +27,7 @@
 #' }
 pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col, plink_bin, bfile, threads = 1, memory = 8000) {
   
-    cli::cli_progress_step("Extracting genotypes from {.file {bfile}}")
+    cli::cli_progress_step("Extracting genotypes from {.val {bfile}}")
   
     allele_file <- fs::file_temp()
     genotype_file <- fs::path(fs::path_temp(), "genotypes")
