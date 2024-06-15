@@ -229,6 +229,159 @@ phewas_res <- run_pmbb_phewas(
 
   
 
+## Run a PheWAS and generate a report
+
+The `run_pmbb_phewas_report` function is a wrapper around the `run_pmbb_phewas` function that generates an HTML report of the results.
+
+
+  
+
+```{r example-run_pmbb_phewas_report, eval = FALSE}
+#' \dontrun{
+run_pmbb_phewas_report(
+  gene = c("LDLR"),
+  annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  gene_col = "Gene.refGene",
+  masks = list(
+    plof_0.01 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.01")
+  ),
+  mask_operator = list(
+    plof_0.01 = "burden"
+  ),
+  variant_id_col = ID,
+  effect_allele_col = Alt,
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
+  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+  populations = c("ALL", "EUR", "AFR"),
+  covariate_population_col = "Class",
+  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
+  mask_output_path = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
+  phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
+  cores = parallelly::availableCores()
+)
+#' }
+```
+
+  
+
+## Render a report from pre-saved pheWAS output
+
+    
+
+  
+
+```{r example-render_pmbb_phewas_report, eval = FALSE}
+#' \dontrun{
+render_pmbb_phewas_report()
+#' }
+```
+
+  
+
+  
+
+
+```{r eval = FALSE, include = FALSE}
+
+run_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_operator, variant_id_col, effect_allele_col, plink_bin, bfile, phecode_file, covariate_files, populations, covariate_population_col, covariate_cols, mask_output_path = NULL, phewas_output_path = NULL, ...) {
+  
+  # Get the function call as a string
+  function_call <- deparse(match.call())
+  
+  # return(function_call)
+  
+  # Extract genotypes for a series of masks
+  mask_res <- pmbb_extract_genotype_masks(
+    gene = gene,
+    annotation_file = annotation_file,
+    gene_col = gene_col,
+    masks = masks,
+    mask_operator = mask_operator,
+    variant_id_col = {{ variant_id_col }},
+    effect_allele_col = {{ effect_allele_col }},
+    plink_bin = plink_bin,
+    bfile = bfile
+  )
+  
+  # Save the mask results to a file
+  if (is.null(mask_output_path)) {
+    # Use a temporary file if mask_output_path is not provided
+    mask_output_path <- tempfile(fileext = ".rds")
+  }
+  saveRDS(mask_res, file = mask_output_path)
+  
+  # Run a PheWAS
+  phewas_res <- run_pmbb_phewas(
+    mask_genotypes_list = mask_res,
+    phecode_file = phecode_file,
+    covariate_files = covariate_files,
+    populations = populations,
+    covariate_population_col = {{ covariate_population_col }},
+    covariate_cols = {{ covariate_cols }},
+    ...
+  )
+  
+  # Save the PheWAS results to a file
+  if (is.null(phewas_output_path)) {
+    # Use a temporary file if phewas_output_path is not provided
+    phewas_output_path <- tempfile(fileext = ".rds")
+  }
+  saveRDS(phewas_res, file = phewas_output_path)
+  
+  # Collapse the gene names into a single string
+  gene_names <- glue::glue_collapse(gene, last = ", and ", sep = ", ")
+  
+  # Render the Quarto document using the saved files, function call, and gene names as execute_params
+  
+  usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
+  
+  quarto::quarto_render(
+    input = ".phecode_phewas_template.qmd",
+    output_format = "html",
+    execute_params = list(
+      mask_results = fs::path_abs(mask_output_path),
+      phewas_results = fs::path_abs(phewas_output_path),
+      function_call = function_call,
+      gene_names = gene_names
+    ),
+    output_file = paste0(gene_names, "_phewas_report.html")
+  )
+  
+  # Return the paths to the saved mask and PheWAS results files
+  return(list(
+    mask_output_path = mask_output_path,
+    phewas_output_path = phewas_output_path
+  ))
+}
+
+# Example usage
+run_phewas_report(
+  gene = c("LDLR"),
+  annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  gene_col = "Gene.refGene",
+  masks = list(
+    plof_0.01 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.01")
+  ),
+  mask_operator = list(
+    plof_0.01 = "burden"
+  ),
+  variant_id_col = ID,
+  effect_allele_col = Alt,
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
+  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+  populations = c("ALL", "EUR", "AFR"),
+  covariate_population_col = "Class",
+  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
+  mask_output_path = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
+  phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
+  cores = parallelly::availableCores()
+)
+```
+
 <!--
 
 # There can be development actions

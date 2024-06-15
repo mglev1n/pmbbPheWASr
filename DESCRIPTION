@@ -27,9 +27,11 @@ Imports:
     tidyr,
     tidyselect,
     tidytable,
+    usethis,
     vroom
 Suggests: 
     knitr,
+    parallelly,
     rmarkdown,
     testthat
 VignetteBuilder: 

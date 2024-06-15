@@ -7,7 +7,9 @@ flat_pmbb_phewas.Rmd:
   - R/pmbb_extract_genotype_masks.R
   - R/pmbb_extract_genotypes.R
   - R/pmbb_format_phecodes.R
+  - R/render_pmbb_phewas_report.R
   - R/run_pmbb_phewas.R
+  - R/run_pmbb_phewas_report.R
   tests:
   - tests/testthat/test-awk_str_filter.R
   - tests/testthat/test-apply_variant_masks.R
@@ -15,6 +17,8 @@ flat_pmbb_phewas.Rmd:
   - tests/testthat/test-pmbb_extract_genotype_masks.R
   - tests/testthat/test-pmbb_format_phecodes.R
   - tests/testthat/test-run_pmbb_phewas.R
+  - tests/testthat/test-run_pmbb_phewas_report.R
+  - tests/testthat/test-render_pmbb_phewas_report.R
   vignettes: vignettes/get-started.Rmd
   inflate:
     flat_file: dev/flat_pmbb_phewas.Rmd

@@ -48,7 +48,6 @@ For example: list(plof_0.001 = "burden", common_0.01 = "single")}
 }
 \value{
 A named list, where each element represents a mask and contains a list with components based on the specified mask_operator:
-- If mask_operator is "burden" (default):
 - "variants": A \code{\link[tibble:tibble]{tibble::tibble()}} of the variants included in the mask.
 - "genotypes": A \code{\link[tibble:tibble]{tibble::tibble()}} containing the genotype for each PMBB participant.
 - "mask_type": A \code{\link[tibble:tibble]{tibble::tibble()}} containing the mask type applied (eg. "burden" or "single")

@@ -416,7 +416,6 @@ The `pmbb_extract_genotype_masks` function extracts genotypes for a subset of pa
 #' @param memory The amount of memory (in MB) to allocate for `plink2` (default: 8000).
 #' 
 #' @return A named list, where each element represents a mask and contains a list with components based on the specified mask_operator:
-#'        - If mask_operator is "burden" (default):
 #'          - "variants": A [tibble::tibble()] of the variants included in the mask.
 #'          - "genotypes": A [tibble::tibble()] containing the genotype for each PMBB participant.
 #'          - "mask_type": A [tibble::tibble()] containing the mask type applied (eg. "burden" or "single")
@@ -879,28 +878,27 @@ test_that("run_pmbb_phewas works", {
 })
 ```
 
-# Run a PheWAS and generate a report
+## Run a PheWAS and generate a report
 
-The `run_phewas_report` function is a wrapper around the `run_pmbb_phewas` function that generates an HTML report of the results.
+The `run_pmbb_phewas_report` function is a wrapper around the `run_pmbb_phewas` function that generates an HTML report of the results.
 
-```{r function-run_phewas_report}
-#' Title
+```{r function-run_pmbb_phewas_report}
+#' Run a PheWAS and generate a report
 #' 
-#' Description
+#' This function is a wrapper around the `run_pmbb_phewas` function that additionally generates an HTML report of the results.
 #' 
-#' @param mask_output_path (optional) Path to save the genotype output for each mask (default: NULL)
-#' @param phewas_output_path (optional) Path to save the PheWAS output dataframe (default: NULL)
-#' @param report_output_path (optional) Path to save the HTML report. If NULL, the report will be saved in the working directory. (default: NULL)
+#' @param mask_output_path (optional) Path to save the genotype output for each mask. If `NULL` the genotype output will not be saved (default: `NULL`)
+#' @param phewas_output_path (optional) Path to save the PheWAS output dataframe. If `NULL` the PheWAS output will not be saved separately from the report (default: `NULL`)
+#' @param report_output_path (optional) Path to save the HTML report. If `NULL`, the report will be saved in the working directory. (default: `NULL`)
 #' 
 #' @inheritParams run_pmbb_phewas
+#' @inheritParams pmbb_extract_genotype_masks
 #' 
-#' @return Path to the HTML report
+#' @return A named list containing the paths to the output files
+#' 
 #' 
 #' @export
-run_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_operator, variant_id_col, effect_allele_col, plink_bin, bfile, phecode_file, covariate_files, populations, covariate_population_col, covariate_cols, mask_output_path = NULL, phewas_output_path = NULL, report_output_path = NULL, ...) {
-  
-  # Get the function call as a string
-  function_call <- deparse(match.call())
+run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_operator, variant_id_col, effect_allele_col, plink_bin, bfile, phecode_file, covariate_files, populations, covariate_population_col, covariate_cols, mask_output_path = NULL, phewas_output_path = NULL, report_output_path = NULL, ...) {
   
   # Extract genotypes for a series of masks
   mask_res <- pmbb_extract_genotype_masks(
@@ -949,33 +947,23 @@ run_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_opera
   # Generate the output file name with the timestamp and collapsed gene names
   output_file <- paste0(gene_names_collapsed, "_", timestamp, "_phewas_report.html")
   
-  # Render the Quarto document using the saved files, function call, and gene names as execute_params
-  usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
-  
-  quarto::quarto_render(
-    input = ".phecode_phewas_template.qmd",
-    output_format = "html",
-    execute_params = list(
-      mask_results = fs::path_abs(mask_output_path),
-      phewas_results = fs::path_abs(phewas_output_path),
-      function_call = function_call,
-      gene_names = gene_names_collapsed
-    ),
-    output_file = output_file
-  )
-  
-  # Move the generated report to the specified report_output_path
+  # Set the full output file path
   if (!is.null(report_output_path)) {
-    fs::dir_create(fs::path_dir(report_output_path))
-    fs::file_move(output_file, report_output_path)
     output_file <- fs::path(report_output_path, output_file)
   }
   
-  # Return the paths to the saved mask, PheWAS results, and report files
-  return(list(
+  # Render the PheWAS report
+  render_pmbb_phewas_report(
     mask_output_path = mask_output_path,
     phewas_output_path = phewas_output_path,
-    report_output_path = output_file
+    output_file = output_file
+  )
+  
+  # Return the paths to the saved mask, PheWAS results, and report files
+  return(list(
+    report_output_path = output_file,
+    mask_output_path = mask_output_path,
+    phewas_output_path = phewas_output_path
   ))
 }
 ```
@@ -1011,6 +999,90 @@ run_pmbb_phewas_report(
 ```{r tests-run_pmbb_phewas_report}
 test_that("run_phewas_report works", {
   expect_true(inherits(run_pmbb_phewas_report, "function")) 
+  skip()
+  run_pmbb_phewas_report(
+  gene = c("LDLR"),
+  annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  gene_col = "Gene.refGene",
+  masks = list(
+    plof_0.01 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.01")
+  ),
+  mask_operator = list(
+    plof_0.01 = "burden"
+  ),
+  variant_id_col = ID,
+  effect_allele_col = Alt,
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
+  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+  populations = c("ALL", "EUR", "AFR"),
+  covariate_population_col = "Class",
+  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
+  mask_output_path = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
+  phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
+  cores = parallelly::availableCores()
+)
+})
+```
+
+## Render a report from pre-saved pheWAS output
+    
+```{r function-render_pmbb_phewas_report}
+#' Render PheWAS Report
+#' 
+#' This function renders an HTML report from pre-saved genotype mask and PheWAS output files.
+#' 
+#' @param mask_output_path Path to the saved genotype output for each mask
+#' @param phewas_output_path Path to the saved PheWAS output dataframe
+#' @param output_file Full path to save the HTML report
+# @param gene Character vector of gene name(s) analyzed in the PheWAS
+#' 
+#' @return Path to the HTML report
+#' 
+#' @export
+render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, output_file) {
+  
+  # Get the function call as a string
+  function_call <- deparse(sys.call(-1))
+  
+  # # Collapse the gene names into a single string
+  # gene_names_collapsed <- glue::glue_collapse(gene, sep = "-")
+  
+  # Render the Quarto document using the saved files, function call, and gene names as execute_params
+  usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
+  
+  quarto::quarto_render(
+    input = ".phecode_phewas_template.qmd",
+    output_format = "html",
+    execute_params = list(
+      mask_results = fs::path_abs(mask_output_path),
+      phewas_results = fs::path_abs(phewas_output_path)
+    ),
+    output_file = output_file
+  )
+  
+  # Return the path to the generated report file
+  return(output_file)
+}
+```
+  
+```{r example-render_pmbb_phewas_report, eval=FALSE}
+#' \dontrun{
+render_pmbb_phewas_report()
+#' }
+```
+  
+```{r tests-render_pmbb_phewas_report}
+test_that("render_pmbb_phewas_report works", {
+  expect_true(inherits(render_pmbb_phewas_report, "function"))
+
+  skip()
+  render_pmbb_phewas_report(
+    phewas_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/tests/testthat/LDLR_phewas_results.rds",
+    mask_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/tests/testthat/LDLR_mask_results.rds",
+    output_file = "LDLR_report.html"
+  )
 })
 ```
   

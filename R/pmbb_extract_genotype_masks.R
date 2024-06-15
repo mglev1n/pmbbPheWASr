@@ -22,7 +22,6 @@
 #' @param memory The amount of memory (in MB) to allocate for `plink2` (default: 8000).
 #' 
 #' @return A named list, where each element represents a mask and contains a list with components based on the specified mask_operator:
-#'        - If mask_operator is "burden" (default):
 #'          - "variants": A [tibble::tibble()] of the variants included in the mask.
 #'          - "genotypes": A [tibble::tibble()] containing the genotype for each PMBB participant.
 #'          - "mask_type": A [tibble::tibble()] containing the mask type applied (eg. "burden" or "single")
