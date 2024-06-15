@@ -45,4 +45,10 @@
   <url>
     <loc>/reference/pmbb_extract_genotypes.html</loc>
   </url>
+  <url>
+    <loc>/reference/pmbb_format_phecodes.html</loc>
+  </url>
+  <url>
+    <loc>/reference/run_pmbb_phewas.html</loc>
+  </url>
 </urlset>

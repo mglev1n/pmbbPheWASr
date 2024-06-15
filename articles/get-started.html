@@ -153,7 +153,7 @@ are returned as a named list.</p>
 <h2 id="extracting-genotypes">Extracting genotypes<a class="anchor" aria-label="anchor" href="#extracting-genotypes"></a>
 </h2>
 <div class="section level3">
-<h3 id="single-list-extraction">Single list extraction<a class="anchor" aria-label="anchor" href="#single-list-extraction"></a>
+<h3 id="extract-a-single-set-of-variants">Extract a single set of variants<a class="anchor" aria-label="anchor" href="#extract-a-single-set-of-variants"></a>
 </h3>
 <p>The <code>pmbb_extract_genotypes</code> function is a wrapper around
 <code>plink2</code> to extract genotypes from PMBB plink files. The
@@ -198,6 +198,51 @@ participants based on a set of masks.</p>
 <span>  effect_allele_col <span class="op">=</span> <span class="va">Alt</span>,</span>
 <span>  plink_bin <span class="op">=</span> <span class="st">"/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2"</span>,</span>
 <span>  bfile <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"</span><span class="op">)</span></span>
+<span><span class="co">#' }</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="phewas-convenience-functions">PheWAS convenience functions<a class="anchor" aria-label="anchor" href="#phewas-convenience-functions"></a>
+</h2>
+<div class="section level3">
+<h3 id="format-pmbb-phecode-data">Format PMBB phecode data<a class="anchor" aria-label="anchor" href="#format-pmbb-phecode-data"></a>
+</h3>
+<p>The <code>pmbb_format_phecodes</code> function takes a path to a PMBB
+phecode file and applies a case threshold to categorize individuals as
+cases or controls. The function returns a tibble with
+<code>PMBB_ID</code> and phecodes as columns, with TRUE/FALSE values for
+each phecode column.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co">#' \dontrun{</span></span>
+<span><span class="fu"><a href="../reference/pmbb_format_phecodes.html">pmbb_format_phecodes</a></span><span class="op">(</span>phecode_file <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt"</span><span class="op">)</span></span>
+<span><span class="co">#' }</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co">#' \dontrun{</span></span>
+<span><span class="fu">pmbb_format_covariates</span><span class="op">(</span></span>
+<span>  covariate_files <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt"</span>, <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"</span><span class="op">)</span>,</span>
+<span>  populations <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ALL"</span>, <span class="st">"EUR"</span><span class="op">)</span>,</span>
+<span>  covariate_population_col <span class="op">=</span> <span class="va">Class</span>,</span>
+<span>  covariate_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Age <span class="op">=</span> <span class="va">Age_at_Enrollment</span>, Sex <span class="op">=</span> <span class="va">Gen_Sex</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"Genotype_PC"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#' }</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="run-a-phewas">Run a PheWAS<a class="anchor" aria-label="anchor" href="#run-a-phewas"></a>
+</h3>
+<p>The <code>run_pmbb_phewas</code> function runs a PheWAS on the PMBB
+data, using the results of the <code>pmbb_extract_genotype_masks</code>
+function and paths to PMBB files containing phenotype and covariate
+data.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co">#' \dontrun{</span></span>
+<span><span class="fu"><a href="../reference/run_pmbb_phewas.html">run_pmbb_phewas</a></span><span class="op">(</span></span>
+<span>  mask_genotypes_list <span class="op">=</span> <span class="va">ldlr_mask_res</span> <span class="op"><a href="../reference/pipe.html">%&gt;%</a></span> <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span>,</span>
+<span>  phecode_file <span class="op">=</span> <span class="va">pmbb_phecodes</span>,</span>
+<span>  covariate_files <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt"</span>, <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"</span><span class="op">)</span>,</span>
+<span>  populations <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ALL"</span>, <span class="st">"EUR"</span><span class="op">)</span>,</span>
+<span>  covariate_population_col <span class="op">=</span> <span class="va">Class</span>,</span>
+<span>  covariate_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Age <span class="op">=</span> <span class="va">Age_at_Enrollment</span>, Sex <span class="op">=</span> <span class="va">Gen_Sex</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"Genotype_PC"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span><span class="co">#' }</span></span></code></pre></div>
 <!--
 
