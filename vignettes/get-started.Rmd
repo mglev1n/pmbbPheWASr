@@ -83,7 +83,7 @@ apply_variant_masks(
 
   
 
-```{r example-filter_dataframe, eval = FALSE}
+```{r example-filter_dataframe, eval = FALSE, include = FALSE}
 #' \dontrun{
 filter_dataframe(
   ldlr_variants, 
@@ -126,7 +126,7 @@ The `pmbb_extract_genotype_masks` function extracts genotypes for a subset of pa
 
 ```{r example-pmbb_extract_genotype_masks, eval = FALSE}
 #' \dontrun{
-pmbb_extract_genotype_masks(
+ldlr_mask_res <- pmbb_extract_genotype_masks(
   gene = "LDLR",
   annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
   gene_col = "Gene.refGene",
@@ -171,7 +171,7 @@ pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenoty
 
   
 
-```{r example-pmbb_format_covariates, eval = FALSE}
+```{r example-pmbb_format_covariates, eval = FALSE, include = FALSE}
 #' \dontrun{
 pmbb_format_covariates(
   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
@@ -198,7 +198,7 @@ The `run_pmbb_phewas` function runs a PheWAS on the PMBB data, using the results
 ```{r example-run_pmbb_phewas, eval = FALSE}
 #' \dontrun{
 run_pmbb_phewas(
-  mask_genotypes_list = ldlr_mask_res %>% head(2),
+  mask_genotypes_list = ldlr_mask_res,
   phecode_file = pmbb_phecodes,
   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
   populations = c("ALL", "EUR"),

@@ -17,7 +17,6 @@ Imports:
     fs,
     glue,
     magrittr,
-    parallelly,
     PheWAS,
     processx,
     purrr,

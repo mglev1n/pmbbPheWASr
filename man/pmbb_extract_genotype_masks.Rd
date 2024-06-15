@@ -58,7 +58,7 @@ This function extracts genotypes for a subset of participants based on a set of 
 }
 \examples{
 \dontrun{
-pmbb_extract_genotype_masks(
+ldlr_mask_res <- pmbb_extract_genotype_masks(
   gene = "LDLR",
   annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
   gene_col = "Gene.refGene",
