@@ -17,7 +17,6 @@ knitr::opts_chunk$set(
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/mglev1n/pmbbPheWASr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mglev1n/pmbbPheWASr/actions/workflows/R-CMD-check.yaml)
-[![Codecov test coverage](https://codecov.io/gh/mglev1n/pmbbPheWASr/branch/main/graph/badge.svg)](https://app.codecov.io/gh/mglev1n/pmbbPheWASr?branch=main)
 <!-- badges: end -->
 
 The goal of pmbbPheWASr is to enable Penn Medicine Biobank researchers to perform phenome-wide association studies (PheWAS) using Penn Medicine Biobank data. This package provides a set of tools to perform PheWAS analyses, including data cleaning, harmonization, and analysis.
