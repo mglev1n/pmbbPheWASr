@@ -815,11 +815,11 @@ ldlr_mask_res <- pmbb_extract_genotype_masks(
   gene_col = "Gene.refGene",
   masks = list(
     plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
-    rare_0.000001 = list(gnomAD_exome_ALL = "< 0.000001")
+    common = list(gnomAD_exome_ALL = "> 0.01")
   ),
   mask_operator = list(
     plof_0.001 = "burden",
-    rare_0.000001 = "single"
+    common = "single"
   ),
   variant_id_col = ID,
   effect_allele_col = Alt,
