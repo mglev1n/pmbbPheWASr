@@ -33,7 +33,7 @@ pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col
     genotype_file <- fs::path(fs::path_temp(), "genotypes")
     
     allele_table <- variant_df %>%
-        dplyr::select({{variant_id_col}}, {{effect_allele_col}}) 
+        dplyr::select(!!ensym(variant_id_col), !!ensym(effect_allele_col))
     
    allele_table %>%
         data.table::fwrite(allele_file, col.names = FALSE, sep = "\t")
@@ -44,7 +44,7 @@ pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col
             "--bfile", bfile,
             "--threads", threads,
             "--memory", memory,
-            "--snps", variant_df %>% dplyr::pull({{variant_id_col}}),
+            "--snps", variant_df %>% dplyr::pull(!!ensym(variant_id_col)),
             "--export-allele", allele_file,
             "--export", "A",
             "--out", genotype_file

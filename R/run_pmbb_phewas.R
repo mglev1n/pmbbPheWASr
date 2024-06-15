@@ -66,7 +66,7 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   
   # Format covariate data
   if (is.character(covariate_files)) {
-    covariate_df <- pmbb_format_covariates(covariate_files, covariate_cols = {{ covariate_cols }}, {{ covariate_population_col }}, populations)
+    covariate_df <- pmbb_format_covariates(covariate_files, {{ covariate_cols }}, !!ensym(covariate_population_col), populations)
   } else if (is.data.frame(covariate_files)) {
     covariate_df <- covariate_files
   } else {
@@ -84,11 +84,11 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
       
       if(population != "ALL") {
         covariate_df <- covariate_df %>%
-          dplyr::filter({{ covariate_population_col }} == population) %>%
-          dplyr::select(-{{ covariate_population_col }})
+          dplyr::filter(!!ensym(covariate_population_col) == population) %>%
+          dplyr::select(-!!ensym(covariate_population_col))
       } else {
         covariate_df <- covariate_df %>%
-          dplyr::select(-{{ covariate_population_col }})
+          dplyr::select(-!!ensym(covariate_population_col))
       }
     
       additive <- dplyr::if_else(genotype_masks %>% purrr::pluck("mask_type") == "single", TRUE, FALSE)

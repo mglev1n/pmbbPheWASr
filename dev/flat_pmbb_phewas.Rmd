@@ -250,7 +250,7 @@ filter_dataframe <- function(df, filter_list) {
     
     # Apply the filter criteria to the specified column using {{}}
     df <- df %>%
-      filter(!!parse_expr(paste0({{col_filter}}, filter_criteria)))
+      filter(!!parse_expr(paste0({{ col_filter }}, filter_criteria)))
   }
   
   return(df)
@@ -305,7 +305,7 @@ pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col
     genotype_file <- fs::path(fs::path_temp(), "genotypes")
     
     allele_table <- variant_df %>%
-        dplyr::select({{variant_id_col}}, {{effect_allele_col}}) 
+        dplyr::select(!!ensym(variant_id_col), !!ensym(effect_allele_col))
     
    allele_table %>%
         data.table::fwrite(allele_file, col.names = FALSE, sep = "\t")
@@ -316,7 +316,7 @@ pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col
             "--bfile", bfile,
             "--threads", threads,
             "--memory", memory,
-            "--snps", variant_df %>% dplyr::pull({{variant_id_col}}),
+            "--snps", variant_df %>% dplyr::pull(!!ensym(variant_id_col)),
             "--export-allele", allele_file,
             "--export", "A",
             "--out", genotype_file
@@ -445,15 +445,15 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     cli::cli_progress_step("Extracting unique set of variant IDs across all masks")
     
     unique_variant_ids <- masked_variants %>%
-      purrr::map(~ dplyr::pull(.x, {{ variant_id_col }})) %>%
+      purrr::map(~ dplyr::pull(.x, !!ensym(variant_id_col))) %>%
       purrr::reduce(union)
     
     cli::cli_progress_step("Extracting genotypes for unique set of variant IDs")
     
     genotype_df <- pmbb_extract_genotypes(
-      variant_df = gene_variants %>% dplyr::filter({{ variant_id_col }} %in% unique_variant_ids),
-      variant_id_col = {{ variant_id_col }},
-      effect_allele_col = {{ effect_allele_col }},
+      variant_df = gene_variants %>% dplyr::filter(!!ensym(variant_id_col) %in% unique_variant_ids),
+      variant_id_col = !!ensym(variant_id_col),
+      effect_allele_col = !!ensym(effect_allele_col),
       plink_bin = plink_bin,
       bfile = bfile,
       threads = threads,
@@ -465,7 +465,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     mask_list <- purrr::imap(masked_variants, function(variant_df, mask_name) {
       mask_genotypes <- genotype_df %>%
         dplyr::mutate(ID = stringr::str_replace(variant_id, "_[^_]+$", "")) %>%
-        dplyr::filter(ID %in% (variant_df %>% dplyr::pull({{ variant_id_col }})))
+        dplyr::filter(ID %in% (variant_df %>% dplyr::pull(!!ensym(variant_id_col))))
       
       if (is.null(mask_operator) || mask_operator[[mask_name]] == "burden") {
         mask_genotypes_summarized <- mask_genotypes %>%
@@ -473,7 +473,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
           dplyr::summarize(genotype = sum(genotype, na.rm = TRUE), .groups = "drop") %>%
           dplyr::select(dplyr::everything(), genotype)
         
-        list(variants = variant_df %>% filter({{ variant_id_col }} %in% mask_genotypes$ID),
+        list(variants = variant_df %>% filter(!!ensym(variant_id_col) %in% mask_genotypes$ID),
              genotypes = mask_genotypes_summarized,
              mask_type = "burden")
         
@@ -485,7 +485,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
           
           list(
             name = paste(mask_name, variant, sep = "_"),
-            variants = variant_df %>% dplyr::filter({{ variant_id_col }} == stringr::str_replace(variant, "_[^_]+$", "")),
+            variants = variant_df %>% dplyr::filter(!!ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
             genotypes = variant_genotypes,
             mask_type = "single"
           )
@@ -681,7 +681,7 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
   }
 
   covariate_df %>%
-    dplyr::select(PMBB_ID, {{ covariate_cols }}, {{ covariate_population_col }}) %>%
+    dplyr::select(PMBB_ID, {{ covariate_cols }}, !!ensym(covariate_population_col)) %>%
     assertr::assert(assertr::is_uniq, PMBB_ID)
 
 }
@@ -759,7 +759,7 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   
   # Format covariate data
   if (is.character(covariate_files)) {
-    covariate_df <- pmbb_format_covariates(covariate_files, covariate_cols = {{ covariate_cols }}, {{ covariate_population_col }}, populations)
+    covariate_df <- pmbb_format_covariates(covariate_files, {{ covariate_cols }}, !!ensym(covariate_population_col), populations)
   } else if (is.data.frame(covariate_files)) {
     covariate_df <- covariate_files
   } else {
@@ -777,11 +777,11 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
       
       if(population != "ALL") {
         covariate_df <- covariate_df %>%
-          dplyr::filter({{ covariate_population_col }} == population) %>%
-          dplyr::select(-{{ covariate_population_col }})
+          dplyr::filter(!!ensym(covariate_population_col) == population) %>%
+          dplyr::select(-!!ensym(covariate_population_col))
       } else {
         covariate_df <- covariate_df %>%
-          dplyr::select(-{{ covariate_population_col }})
+          dplyr::select(-!!ensym(covariate_population_col))
       }
     
       additive <- dplyr::if_else(genotype_masks %>% purrr::pluck("mask_type") == "single", TRUE, FALSE)
@@ -870,7 +870,7 @@ test_that("run_pmbb_phewas works", {
       phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(10000),
       covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
       populations = c("ALL", "EUR"),
-      covariate_population_col = Class,
+      covariate_population_col = "Class",
       covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
     )
   )
@@ -878,7 +878,6 @@ test_that("run_pmbb_phewas works", {
   expect_true(inherits(phewas_res, "data.frame"))
 })
 ```
-
 
 <!--
 # There can be development actions

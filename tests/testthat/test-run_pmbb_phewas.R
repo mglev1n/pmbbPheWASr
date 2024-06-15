@@ -31,7 +31,7 @@ test_that("run_pmbb_phewas works", {
       phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(10000),
       covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
       populations = c("ALL", "EUR"),
-      covariate_population_col = Class,
+      covariate_population_col = "Class",
       covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
     )
   )

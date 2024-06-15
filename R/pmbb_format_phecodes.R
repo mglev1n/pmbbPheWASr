@@ -70,7 +70,7 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
   }
 
   covariate_df %>%
-    dplyr::select(PMBB_ID, {{ covariate_cols }}, {{ covariate_population_col }}) %>%
+    dplyr::select(PMBB_ID, {{ covariate_cols }}, !!ensym(covariate_population_col)) %>%
     assertr::assert(assertr::is_uniq, PMBB_ID)
 
 }

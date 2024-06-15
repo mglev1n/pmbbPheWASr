@@ -70,15 +70,15 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     cli::cli_progress_step("Extracting unique set of variant IDs across all masks")
     
     unique_variant_ids <- masked_variants %>%
-      purrr::map(~ dplyr::pull(.x, {{ variant_id_col }})) %>%
+      purrr::map(~ dplyr::pull(.x, !!ensym(variant_id_col))) %>%
       purrr::reduce(union)
     
     cli::cli_progress_step("Extracting genotypes for unique set of variant IDs")
     
     genotype_df <- pmbb_extract_genotypes(
-      variant_df = gene_variants %>% dplyr::filter({{ variant_id_col }} %in% unique_variant_ids),
-      variant_id_col = {{ variant_id_col }},
-      effect_allele_col = {{ effect_allele_col }},
+      variant_df = gene_variants %>% dplyr::filter(!!ensym(variant_id_col) %in% unique_variant_ids),
+      variant_id_col = !!ensym(variant_id_col),
+      effect_allele_col = !!ensym(effect_allele_col),
       plink_bin = plink_bin,
       bfile = bfile,
       threads = threads,
@@ -90,7 +90,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     mask_list <- purrr::imap(masked_variants, function(variant_df, mask_name) {
       mask_genotypes <- genotype_df %>%
         dplyr::mutate(ID = stringr::str_replace(variant_id, "_[^_]+$", "")) %>%
-        dplyr::filter(ID %in% (variant_df %>% dplyr::pull({{ variant_id_col }})))
+        dplyr::filter(ID %in% (variant_df %>% dplyr::pull(!!ensym(variant_id_col))))
       
       if (is.null(mask_operator) || mask_operator[[mask_name]] == "burden") {
         mask_genotypes_summarized <- mask_genotypes %>%
@@ -98,7 +98,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
           dplyr::summarize(genotype = sum(genotype, na.rm = TRUE), .groups = "drop") %>%
           dplyr::select(dplyr::everything(), genotype)
         
-        list(variants = variant_df %>% filter({{ variant_id_col }} %in% mask_genotypes$ID),
+        list(variants = variant_df %>% filter(!!ensym(variant_id_col) %in% mask_genotypes$ID),
              genotypes = mask_genotypes_summarized,
              mask_type = "burden")
         
@@ -110,7 +110,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
           
           list(
             name = paste(mask_name, variant, sep = "_"),
-            variants = variant_df %>% dplyr::filter({{ variant_id_col }} == stringr::str_replace(variant, "_[^_]+$", "")),
+            variants = variant_df %>% dplyr::filter(!!ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
             genotypes = variant_genotypes,
             mask_type = "single"
           )

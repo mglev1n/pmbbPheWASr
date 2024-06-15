@@ -94,7 +94,7 @@ filter_dataframe <- function(df, filter_list) {
     
     # Apply the filter criteria to the specified column using {{}}
     df <- df %>%
-      filter(!!parse_expr(paste0({{col_filter}}, filter_criteria)))
+      filter(!!parse_expr(paste0({{ col_filter }}, filter_criteria)))
   }
   
   return(df)

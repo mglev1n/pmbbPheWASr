@@ -1,0 +1,169 @@
+---
+title: "PMBB-PheWAS"
+author: 
+  - name: Michael Levin, MD
+    orcid: 0000-0002-9937-9932
+date: last-modified
+format:
+  html:
+    code-tools: true
+    toc: true
+    toc-depth: 6
+    cap-location: top
+    embed-resources: true
+    self-contained: true
+    citations-hover: true
+fig-height: 4
+execute:
+  warning: false
+  message: false
+  echo: false
+csl: https://raw.githubusercontent.com/citation-style-language/styles/6152ccea8b7d7a472910d36524d1bf3557a83bfc/dependent/nature-genetics.csl
+
+params:
+  gene: c("LDLR")
+  populations: c("ALL", "EUR", "AFR")
+  covariate_population_col: Class
+  covariate_cols: c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
+  annotation_gene_col: Gene.refGene
+  masks:
+    value:
+      plof_0.001:
+        ExonicFunc.ensGene: "%in% c('stopgain', 'stoploss', 'startloss', 'frameshift substitution')"
+        gnomAD_exome_ALL: "< 0.001"
+  mask_operator:
+    value:
+      plof_0.001: burden
+  variant_id_col: ID
+  effect_allele_col: Alt
+  annotation_file: /project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt
+  phecode_file: /project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt
+  covariate_files: c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt")
+  plink_bin: /project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2
+  bfile: /project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL
+
+---
+
+```{r}
+library(tidyverse)
+library(pmbbPheWASr)
+library(rlang)
+library(PheWAS)
+library(DT)
+library(htmltools)
+```
+
+```{r, eval=FALSE}
+
+ldl_variant_df <- awk_str_filter(filename = params$annotation_file, filter_col = params$annotation_gene_col, filter_str = eval_bare(parse_expr(params$gene)))
+
+ldl_genotype_df <- pmbb_extract_genotypes(variant_df = ldl_variant_df, variant_id_col = params$variant_id_col, effect_allele_col = params$effect_allele_col, plink_bin = params$plink_bin, bfile = params$bfile)
+
+mask_res <- pmbb_extract_genotype_masks(
+  gene = eval_bare(parse_expr(params$gene)),
+  annotation_file = params$annotation_file,
+  gene_col = params$annotation_gene_col,
+  masks = params$masks,
+  mask_operator = params$mask_operator,
+  variant_id_col = params$variant_id_col,
+  effect_allele_col = params$effect_allele_col,
+  plink_bin = params$plink_bin,
+  bfile = params$bfile
+)
+
+pmbb_phecodes <- pmbb_format_phecodes(phecode_file = params$phecode_file))
+
+phewas_res <- run_pmbb_phewas(
+  mask_genotypes_list = mask_res %>% head(2),
+  phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(10000),
+  covariate_files = eval_bare(parse_expr(params$covariate_files)),
+  populations = eval_bare(parse_expr(params$populations)),
+  covariate_population_col = parse_expr(params$covariate_population_col),
+  covariate_cols = parse_expr(params$covariate_cols)
+)
+```
+
+```{r}
+phewas_res <- vroom::vroom("../../tests/testthat/phewas_res.tsv")
+
+phewas_res_nested <- phewas_res %>%
+  group_nest(mask_name)
+  
+```
+
+<!-- ::: panel-tabset -->
+
+## Genotype Masks
+
+```{r}
+#| output: asis
+#| results: asis
+
+embed_table <- function(df) {
+  df %>%
+    datatable(
+      extensions = c("Buttons", "FixedColumns"),
+      class = c("compact", "stripe", "hover", "row-border"),
+      rownames = FALSE,
+      # fillContainer = TRUE,
+      options = list(
+        dom = "Bfrtip",
+        buttons = c("copy", "csv"),
+        scrollX = TRUE,
+        scrollY = TRUE,
+        fixedColumns = list(leftColumns = 1),
+        columnDefs = list(list(className = 'dt-center', targets = "_all"))
+      ),
+      height = 400
+    )
+}
+
+### PheWAS results
+purrr::pwalk(phewas_res_nested, \(mask_name, data) {
+  
+  cat(paste0("\n### ", mask_name, "\n\n"))
+  dataset <- data %>%
+    group_nest(population)
+  cat("\n::: panel-tabset\n")
+  purrr::pwalk(dataset, \(population, data) {
+    
+    cat(paste0("\n#### ", population, "\n\n"))
+    
+    # DT::datatable(data) %>%
+    #   print()
+    
+    tagList(embed_table(data)) %>%
+      print()
+    
+    # print(htmltools::tagList(data %>%
+    #   mutate(across(where(is.numeric), ~signif(., 4))) %>%
+    #   levinmisc::render_datatable(), htmltools::tags$br()))
+  })
+  cat("\n:::\n")
+})
+  # cat(paste0("\n#### Set ",i,"\n\n"))
+  # cat(paste0(burden_names[i],"\n"))
+  # 
+  # cat("\n::: panel-tabset\n")
+  # for (anc in c("ALL", "AFR", "EUR", "Meta")){
+  #   cat(paste0("\n#### ",anc,"\n\n"))
+  #   
+  # 
+  #   res_name <- paste0("phewas/",strsplit(burden_files[i],".",fixed=T)[[1]][1],
+  #                      "_phecode_ro2_",tolower(anc),"_cov.csv")
+  #   df <- read.csv(res_name, header=TRUE, colClasses = c('phenotype'='character'))
+  #   df <- df[-1]
+  #   print(htmltools::tagList(recreate_plot(df, strsplit(burden_files[i],".",fixed=T)[[1]][1], anc), 
+  #                            embed_table(extract_results(df)),
+  #                            htmltools::tags$br(),htmltools::tags$br(),htmltools::tags$br(),
+  #                            htmltools::tags$br(),htmltools::tags$br()))
+  # }
+  # cat("\n:::\n")
+
+
+
+```
+<!-- ::: -->
+
+
+
