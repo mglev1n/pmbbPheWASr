@@ -594,7 +594,7 @@ pmbb_format_phecodes <- function(phecode_file, phecode_case_threshold = 2){
 }
 ```
   
-```{r example-pmbb_format_phecodes}
+```{r example-pmbb_format_phecodes, eval=FALSE}
 #' \dontrun{
 pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt")
 #' }
@@ -618,7 +618,7 @@ test_that("pmbb_format_phecodes works", {
 })
 ```
   
-# pmbb_format_covariates
+
     
 ```{r function-pmbb_format_covariates}
 #' Format covariate data for PheWAS
@@ -662,7 +662,7 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
 
   covariate_df <- purrr::map(covariate_files, \(x) vroom::vroom(x, show_col_types = FALSE) %>% unique()) %>%
     purrr::reduce(dplyr::left_join, by = c("PMBB_ID"), suffix = c("", "_duplicated")) %>%
-    select(-tidyselect::ends_with("_duplicated")) %>%
+    dplyr::select(-tidyselect::ends_with("_duplicated")) %>%
     unique()
 
   if (!rlang::quo_is_null(rlang::enquo(covariate_population_col))) {
@@ -681,7 +681,7 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
   }
 
   covariate_df %>%
-    dplyr::select(PMBB_ID, {{ covariate_cols }}) %>%
+    dplyr::select(PMBB_ID, {{ covariate_cols }}, {{ covariate_population_col }}) %>%
     assertr::assert(assertr::is_uniq, PMBB_ID)
 
 }
@@ -759,7 +759,7 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   
   # Format covariate data
   if (is.character(covariate_files)) {
-    covariate_df <- pmbb_format_covariates(covariate_files, covariate_cols = {{covariate_cols}}, covariate_population_col, populations)
+    covariate_df <- pmbb_format_covariates(covariate_files, covariate_cols = {{ covariate_cols }}, {{ covariate_population_col }}, populations)
   } else if (is.data.frame(covariate_files)) {
     covariate_df <- covariate_files
   } else {
@@ -768,45 +768,52 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   
   # Run PheWAS
   cli::cli_progress_step("Running PheWAS")
+
+  phewas_combos <- tidyr::expand_grid(genotype_masks = mask_genotypes_list, population = populations) %>%
+    dplyr::mutate(mask_name = purrr::imap(genotype_masks, ~.y)) %>%
+    tidyr::unnest(mask_name)
   
-  phewas_results <- purrr::map(mask_genotypes_list, \(genotypes_list) {
-    population_phewas_res <- purrr::map(populations, \(population) {
-      additive <- dplyr::if_else(genotypes_list$mask_name == "single", TRUE, FALSE)
+  phewas_res_list <- purrr::pmap(phewas_combos, \(genotype_masks, population, mask_name) {
       
       if(population != "ALL") {
         covariate_df <- covariate_df %>%
-          dplyr::filter({{covariate_population_col}} == population) %>%
-          dplyr::select(-{{covariate_population_col}})
+          dplyr::filter({{ covariate_population_col }} == population) %>%
+          dplyr::select(-{{ covariate_population_col }})
       } else {
         covariate_df <- covariate_df %>%
-          dplyr::select(-{{covariate_population_col}})
+          dplyr::select(-{{ covariate_population_col }})
       }
-      
-      PheWAS::phewas(
-        genotypes = genotypes_list$genotypes,
-        phenotypes = phenotypes,
+    
+      additive <- dplyr::if_else(genotype_masks %>% purrr::pluck("mask_type") == "single", TRUE, FALSE)
+    
+      phewas_res <- PheWAS::phewas(
+        genotypes = genotype_masks %>% purrr::pluck("genotypes"),
+        phenotypes = phecode_df,
         covariates = covariate_df,
-        additive.genotypes = additive,
+        # additive.genotypes = additive,
         ...
       )
+      
+      return(dplyr::tibble(mask_name = mask_name, 
+                           population = population, 
+                           phewas_res))
+      
     }) %>%
-      purrr::set_names(populations)
-  }) %>%
-    purrr::set_names(names(mask_genotypes_list))
+    purrr::list_rbind()
   
-  return(phewas_results)
+  return(phewas_res_list)
   
 }
 ```
   
 ```{r example-run_pmbb_phewas, eval=FALSE}
-#' \dontrun {
+#' \dontrun{
 run_pmbb_phewas(
-  mask_genotypes_list = ldlr_mask_res %>% head(1),
-  phecode_file = pmbb_phecodes %>% select(1:10),
+  mask_genotypes_list = ldlr_mask_res %>% head(2),
+  phecode_file = pmbb_phecodes,
   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
   populations = c("ALL", "EUR"),
-  covariate_population_col = "Class",
+  covariate_population_col = Class,
   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
 )
 #' }
@@ -836,15 +843,23 @@ test_that("run_pmbb_phewas works", {
     bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
   )
 
-  phewas_res <- run_pmbb_phewas(
-    mask_genotypes_list = ldlr_mask_res,
-    phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
-    covariate_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.2/PMBB-Release-2020-2.2_phenotype_covariates.txt",
-    populations = c("EUR", "AFR", "ALL")
+  pmbb_phecodes <- pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt")
+  
+  suppressWarnings(
+    phewas_res <- run_pmbb_phewas(
+      mask_genotypes_list = ldlr_mask_res %>% head(2),
+      phecode_file = pmbb_phecodes %>% dplyr::select(1:10) %>% head(1000),
+      covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+      populations = c("ALL", "EUR"),
+      covariate_population_col = Class,
+      covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
+    )
   )
+
+  expect_true(inherits(phewas_res, "data.frame"))
 })
 ```
-  
+
 
 <!--
 # There can be development actions

@@ -17,12 +17,16 @@ Imports:
     fs,
     glue,
     magrittr,
+    PheWAS,
     processx,
     purrr,
     rlang,
     stringr,
     tibble,
-    tidytable
+    tidyr,
+    tidyselect,
+    tidytable,
+    vroom
 Suggests: 
     knitr,
     rmarkdown,
