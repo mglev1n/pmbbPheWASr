@@ -1,5 +1,5 @@
 ---
-title: "PMBB-PheWAS - {{< meta params.gene >}}"
+title: "PMBB-PheWAS {{< meta params.gene_names >}}"
 author: 
   - name: Michael Levin, MD
     orcid: 0000-0002-9937-9932
@@ -15,6 +15,7 @@ format:
     embed-resources: true
     citations-hover: true
 fig-height: 4
+fig-format: retina
 execute:
   warning: false
   message: false
@@ -22,12 +23,18 @@ execute:
 csl: https://raw.githubusercontent.com/citation-style-language/styles/6152ccea8b7d7a472910d36524d1bf3557a83bfc/dependent/nature-genetics.csl
 
 params:
-  gene: NULL
+  gene_names: NULL
   mask_results: NULL
   phewas_results: NULL
   function_call: NULL
 
 ---
+
+```{r}
+params$phewas_results
+params$mask_results
+```
+
 
 ```{r}
 library(tidyverse)
@@ -40,6 +47,7 @@ library(reactable)
 
 theme_set(theme_bw(base_size = 16))
 ```
+
 ```{r include=FALSE}
 # Init step to ensure that JS dependencies are included in the HTML doc
 reactable(mtcars)
@@ -53,13 +61,23 @@ render_reactable <- function(df, ...) {
 
 render_phecode_reactable <- function(phewas_res_df, ...) {
   phewas_res_df %>%
-      select(-adjustment, -snp) %>%
-      PheWAS::addPhecodeInfo() %>%
-      select(phenotype, description, everything()) %>%
-      mutate(across(where(is.numeric), ~signif(., 3))) %>%
-      reactable(filterable = TRUE, searchable = TRUE, ...) %>%
-      shiny::tagList() %>%
-      print()
+    select(-adjustment, -snp) %>%
+    PheWAS::addPhecodeInfo() %>%
+    select(phenotype, description, everything()) %>%
+    mutate(across(where(is.numeric), ~ signif(., 3))) %>%
+    reactable(
+      filterable = TRUE,
+      searchable = TRUE,
+      columns = list(p = colDef(cell = function(value) {
+        # gt::vec_fmt_scientific(as.numeric(value))
+        format(signif(value, 3))
+        # # Render as currency
+        # paste0("$", format(value * 1000, big.mark = ","))
+      })),
+      ...
+    ) %>%
+    shiny::tagList() %>%
+    print()
 }
 
 plot_phewas_manhattan <- function(phewas_res_df, ...) {
@@ -82,77 +100,9 @@ plot_phewas_manhattan <- function(phewas_res_df, ...) {
 }
 
 ```
-```{r, eval=FALSE}
-# ldl_variant_df <- awk_str_filter(filename = params$annotation_file, filter_col = params$annotation_gene_col, filter_str = eval_bare(parse_expr(params$gene)))
-# 
-# ldlr_genotype_df <- pmbb_extract_genotypes(
-#     variant_df = ldl_variant_df,
-#     variant_id_col = ID,
-#     effect_allele_col = Alt,
-#     plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-#     bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
-#   )
-
-mask_res <- pmbb_extract_genotype_masks(
-  gene = eval_bare(parse_expr(params$gene)),
-  annotation_file = params$annotation_file,
-  gene_col = params$annotation_gene_col,
-  masks = eval_tidy(params$masks),
-  mask_operator = eval_tidy(params$mask_operator),
-  variant_id_col = eval_tidy(params$variant_id_col),
-  effect_allele_col = eval_tidy(params$effect_allele_col),
-  plink_bin = params$plink_bin,
-  bfile = params$bfile
-)
-
-# pmbb_phecodes <- pmbb_format_phecodes(phecode_file = params$phecode_file))
-# 
-# phewas_res <- run_pmbb_phewas(
-#   mask_genotypes_list = mask_res %>% head(2),
-#   phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(10000),
-#   covariate_files = eval_bare(parse_expr(params$covariate_files)),
-#   populations = eval_bare(parse_expr(params$populations)),
-#   covariate_population_col = parse_expr(params$covariate_population_col),
-#   covariate_cols = parse_expr(params$covariate_cols)
-# )
-```
-
-
-```{r, eval=FALSE}
-ldlr_mask_res <- pmbb_extract_genotype_masks(
-  gene = "LDLR",
-  annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
-  gene_col = "Gene.refGene",
-  masks = list(
-    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
-    rare_0.000001 = list(gnomAD_exome_ALL = "< 0.000001")
-  ),
-  mask_operator = list(
-    plof_0.001 = "burden",
-    rare_0.000001 = "single"
-  ),
-  variant_id_col = ID,
-  effect_allele_col = Alt,
-  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
-)
-
-pmbb_phecodes <- pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt")
-
-phewas_res <- run_pmbb_phewas(
-  mask_genotypes_list = ldlr_mask_res %>% head(1),
-  phecode_file = pmbb_phecodes,
-  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
-  populations = c("ALL"),
-  covariate_population_col = "Class",
-  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
-)
-
-```
-
 
 ```{r}
-phewas_res <- vroom::vroom("../../tests/testthat/phewas_res_ldlr.tsv")
+phewas_res <- readRDS(params$phewas_results)
 
 phewas_res_nested <- phewas_res %>%
   group_nest(mask_name)
@@ -184,119 +134,30 @@ purrr::pwalk(phewas_res_nested, \(mask_name, data) {
       plot_phewas_manhattan() %>%
       print()
     
-    htmltools::tags$br()
-    htmltools::tags$br()
+    htmltools::tags$br() %>% print()
+
     
     data %>%
       filter(!is.na(p)) %>%
       arrange(p) %>%
       render_phecode_reactable()
     
-    htmltools::tags$br()
+    htmltools::tags$br() %>% print()
 
   })
   cat("\n:::\n")
 })
-  # cat(paste0("\n#### Set ",i,"\n\n"))
-  # cat(paste0(burden_names[i],"\n"))
-  # 
-  # cat("\n::: panel-tabset\n")
-  # for (anc in c("ALL", "AFR", "EUR", "Meta")){
-  #   cat(paste0("\n#### ",anc,"\n\n"))
-  #   
-  # 
-  #   res_name <- paste0("phewas/",strsplit(burden_files[i],".",fixed=T)[[1]][1],
-  #                      "_phecode_ro2_",tolower(anc),"_cov.csv")
-  #   df <- read.csv(res_name, header=TRUE, colClasses = c('phenotype'='character'))
-  #   df <- df[-1]
-  #   print(htmltools::tagList(recreate_plot(df, strsplit(burden_files[i],".",fixed=T)[[1]][1], anc), 
-  #                            embed_table(extract_results(df)),
-  #                            htmltools::tags$br(),htmltools::tags$br(),htmltools::tags$br(),
-  #                            htmltools::tags$br(),htmltools::tags$br()))
-  # }
-  # cat("\n:::\n")
-
-
 
 ```
-<!-- ::: -->
 
-
-
-```{r, eval=FALSE, fig.height=4, fig.width=12}
-phewas_res %>%
-  PheWAS::phewasManhattan(
-    OR.direction = TRUE,
-    OR.size = TRUE,
-    sort.by.category.value = TRUE,
-    # suggestive.line = FALSE,
-    annotate.phenotype.description = TRUE,
-    title = NULL,
-    x.axis.label = NULL,
-    color.palette = viridis::viridis_pal(option = "magma")(20)
-  ) +
-  scale_shape_manual(values = c(25, 24),
-                     labels = c("Decrease", "Increase"),
-                     name = "Effect direction"
-                     )
-  # theme(
-  #   # axis.title.y = ggtext::element_markdown(),
-  #   # axis.ticks.x = element_blank(),
-  #   # axis.text.x = element_blank(),
-  #   panel.grid.minor.x = element_blank(),
-  #   panel.grid.major.x = element_blank(),
-  # )
-  
-```
-
-
-```{r, eval=FALSE, fig.width=16, fig.height=12}
-# filter(population == "ALL" & mask_name == "plof_0.001") %>%
-  PheWAS::addPhecodeInfo() %>%
-  filter(!is.na(beta)) %>%
-  mutate(log10p_signed = sign(beta) * -log10(p)) %>%
-  # bind_rows(phewas_res %>%
-  #   filter(population == "ALL" & mask_name == "plof_0.001") %>%
-  #   PheWAS::addPhecodeInfo() %>%
-  #   filter(!is.na(beta)) %>%
-  #   mutate(log10p_signed = -sign(beta)*-log10(p))) %>%
-  add_count(group) %>%
-  arrange(desc(n)) %>%
-  mutate(group = stringr::str_to_title(group)) %>%
-  mutate(group = fct_inorder(group)) %>%
-  group_by(group) %>%
-  arrange(desc(log10p_signed)) %>%
-  mutate(phenotype = fct_inorder(phenotype)) %>%
-  mutate(phenotype_order = row_number()) %>%
-  mutate(p_adj = p.adjust(p, method = "bonferroni")) %>%
-  mutate(label = case_when(
-    p_adj < 0.05 ~ description,
-    .default = NA
-  )) %>%
-  ggplot(aes(x = phenotype_order, y = log10p_signed, color = group), ) +
-  geom_hline(yintercept = 0, linetype = "solid") +
-  geom_jitter(width = 0.5) +
-  ggrepel::geom_label_repel(aes(label = label), color = "black", show.legend = FALSE) +
-  # facet_wrap(~group, ncol = 4) +
-  facet_grid(cols = vars(group), scales = "free_x") +
-  scale_y_continuous(labels = abs) +
-  coord_cartesian(clip = "off") +
-  # ggsci::scale_color_d3(name = "") +
-  # scale_x_continuous(expand = c(0,0)) +
-  labs(
-    x = "Phecode",
-    y = "-log<sub>10</sub>(p-value)"
-  ) +
-  theme(
-    axis.title.y = ggtext::element_markdown(),
-    axis.ticks.x = element_blank(),
-    axis.text.x = element_blank(),
-    panel.grid.minor.x = element_blank(),
-    panel.grid.major.x = element_blank(),
-    # strip.text = element_blank(),
-    # panel.spacing = unit(0,'lines'),
-    # panel.border = element_blank(),
-  )
-
+```{r}
+# phewas_res %>%
+#   crossing(population2 = c("ALL", "EUR", "AFR")) %>%
+#   mutate(population = population2) %>%
+#   select(-population2) %>%
+#   crossing(mask2 = c("plof_0.001", "common")) %>%
+#   mutate(mask_name = mask2) %>%
+#   select(-mask2) %>%
+#   write_tsv("../../tests/testthat/phewas_res_ldlr_expanded.tsv")
 ```
 

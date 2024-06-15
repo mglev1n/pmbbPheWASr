@@ -4,3 +4,7 @@
 .DS_Store
 .httr-oauth
 inst/doc
+.phecode_phewas_template.qmd
+LDLR_mask_results.rds
+LDLR_phewas_report.html
+LDLR_phewas_results.rds
