@@ -60,7 +60,13 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">render_pmbb_phewas_report</span><span class="op">(</span><span class="va">mask_output_path</span>, <span class="va">phewas_output_path</span>, <span class="va">output_file</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">render_pmbb_phewas_report</span><span class="op">(</span></span>
+<span>  <span class="va">mask_output_path</span>,</span>
+<span>  <span class="va">phewas_output_path</span>,</span>
+<span>  <span class="va">output_file</span>,</span>
+<span>  template_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -76,12 +82,20 @@
 <dt>output_file</dt>
 <dd><p>Full path to save the HTML report</p></dd>
 
+
+<dt>template_path</dt>
+<dd><p>Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: <code>usethis::use_template(".phecode_phewas_template.qmd", save_as = "phecode_phewas_template.qmd", package = "pmbbPheWASr")</code>, which will be saved in the current working directory.</p></dd>
+
+
+<dt>...</dt>
+<dd><p>Additional named parameters to pass to the Quarto document</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
     
 
-<p>Path to the HTML report</p>
+<p>The function renders an HTML report and returns silently</p>
     </div>
 
     <div id="ref-examples">
