@@ -5,6 +5,6 @@
 .httr-oauth
 inst/doc
 .phecode_phewas_template.qmd
-LDLR_mask_results.rds
-LDLR_phewas_report.html
-LDLR_phewas_results.rds
+*_results.rds
+*_report_*.html
+*_report.html

@@ -7,41 +7,40 @@
 #' @param mask_output_path Path to the saved genotype output for each mask
 #' @param phewas_output_path Path to the saved PheWAS output dataframe
 #' @param output_file Full path to save the HTML report
-# @param gene Character vector of gene name(s) analyzed in the PheWAS
+#' @param template_path Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: `usethis::use_template(".phecode_phewas_template.qmd", save_as = "phecode_phewas_template.qmd", package = "pmbbPheWASr")`, which will be saved in the current working directory.
+#' @param ... Additional named parameters to pass to the Quarto document
 #' 
-#' @return Path to the HTML report
+#' @return The function renders an HTML report and returns silently
 #' 
 #' @export
 #' @examples
 #' \dontrun{
 #' render_pmbb_phewas_report()
 #' }
-render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, output_file) {
+render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, output_file, template_path = NULL, ...) {
   
-  # Get the function call as a string
-  # function_call <- deparse(sys.call(-1))
-  
-  # # Collapse the gene names into a single string
-  # gene_names_collapsed <- glue::glue_collapse(gene, sep = "-")
-  
-  # Render the Quarto document using the saved files, function call, and gene names as execute_params
-  
-  if(!file.exists(".phecode_phewas_templated.qmd")) {
-   usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
+  if(!is.null(template_path)) {
+    if(!file.exists(template_path)) {
+    cli::cli_abort("{.arg template_path} does not exist. Please provide a valid path to a Quarto template file.")
+  }
+  } else {
+    template_path <- ".phecode_phewas_template.qmd"
+    usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
   }
   
   quarto::quarto_render(
-    input = ".phecode_phewas_template.qmd",
+    input = template_path,
     output_format = "html",
     execute_params = list(
       mask_results = fs::path_abs(mask_output_path),
-      phewas_results = fs::path_abs(phewas_output_path)
+      phewas_results = fs::path_abs(phewas_output_path),
+      ...
     ),
     output_file = output_file
   )
   
-  # fs::file_delete(".phecode_phewas_template.qmd")
+  fs::file_delete(".phecode_phewas_template.qmd")
   
   # Return the path to the generated report file
-  return(output_file)
+  cli::cli_alert_success("PheWAS report rendered successfully: {.val {output_file}}")
 }

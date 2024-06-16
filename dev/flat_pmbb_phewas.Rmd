@@ -904,12 +904,10 @@ The `run_pmbb_phewas_report` function is a wrapper around the `run_pmbb_phewas` 
 #' 
 #' This function is a wrapper around the `run_pmbb_phewas` function that additionally generates an HTML report of the results.
 #' 
-#' @param mask_output_path (optional) Path to save the genotype output for each mask. If `NULL` the genotype output will not be saved (default: `NULL`)
-#' @param phewas_output_path (optional) Path to save the PheWAS output dataframe. If `NULL` the PheWAS output will not be saved separately from the report (default: `NULL`)
-#' @param report_output_path (optional) Path to save the HTML report. If `NULL`, the report will be saved in the working directory. (default: `NULL`)
 #' 
 #' @inheritParams run_pmbb_phewas
 #' @inheritParams pmbb_extract_genotype_masks
+#' @inheritParams render_pmbb_phewas_report
 #' 
 #' @return A named list containing the paths to the output files
 #' 
@@ -1032,39 +1030,38 @@ test_that("run_phewas_report works", {
 #' @param mask_output_path Path to the saved genotype output for each mask
 #' @param phewas_output_path Path to the saved PheWAS output dataframe
 #' @param output_file Full path to save the HTML report
-# @param gene Character vector of gene name(s) analyzed in the PheWAS
+#' @param template_path Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: `usethis::use_template(".phecode_phewas_template.qmd", save_as = "phecode_phewas_template.qmd", package = "pmbbPheWASr")`, which will be saved in the current working directory.
+#' @param ... Additional named parameters to pass to the Quarto document
 #' 
-#' @return Path to the HTML report
+#' @return The function renders an HTML report and returns silently
 #' 
 #' @export
-render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, output_file) {
+render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, output_file, template_path = NULL, ...) {
   
-  # Get the function call as a string
-  # function_call <- deparse(sys.call(-1))
-  
-  # # Collapse the gene names into a single string
-  # gene_names_collapsed <- glue::glue_collapse(gene, sep = "-")
-  
-  # Render the Quarto document using the saved files, function call, and gene names as execute_params
-  
-  if(!file.exists(".phecode_phewas_templated.qmd")) {
-   usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
+  if(!is.null(template_path)) {
+    if(!file.exists(template_path)) {
+    cli::cli_abort("{.arg template_path} does not exist. Please provide a valid path to a Quarto template file.")
+  }
+  } else {
+    template_path <- ".phecode_phewas_template.qmd"
+    usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
   }
   
   quarto::quarto_render(
-    input = ".phecode_phewas_template.qmd",
+    input = template_path,
     output_format = "html",
     execute_params = list(
       mask_results = fs::path_abs(mask_output_path),
-      phewas_results = fs::path_abs(phewas_output_path)
+      phewas_results = fs::path_abs(phewas_output_path),
+      ...
     ),
     output_file = output_file
   )
   
-  # fs::file_delete(".phecode_phewas_template.qmd")
+  fs::file_delete(".phecode_phewas_template.qmd")
   
   # Return the path to the generated report file
-  return(output_file)
+  cli::cli_alert_success("PheWAS report rendered successfully: {.val {output_file}}")
 }
 ```
   
@@ -1187,6 +1184,97 @@ run_pmbb_phewas_report(
   phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
   cores = 16
 )
+```
+
+
+```{r, eval=FALSE, include=FALSE}
+job::job({run_pmbb_phewas_report(
+    gene = c("ANGPTL3", "ANGPTL4", "ANGPTL8", "APOC3"),
+    annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+    gene_col = "Gene.refGene",
+    masks = list(
+        plof_0.01 = list(ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        missense_0.01 = list(ExonicFunc.ensGene = "%in% c('nonsynonymous SNV')", gnomAD_exome_ALL = "< 0.01")
+    ),
+    mask_operator = list(
+        plof_0.01 = "burden",
+        missense_0.01 = "burden"
+    ),
+    variant_id_col = ID,
+    effect_allele_col = Alt,
+    populations = c("ALL", "EUR", "AFR"),
+    covariate_population_col = "Class",
+    covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
+    mask_output_path = "TRL_mask_results.rds",  # Optional: Specify the output path for the mask results file
+    phewas_output_path = "TRL_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
+    phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+    covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+    bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
+    plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    cores = 16
+)}, title = "TRL PheWAS")
+```
+
+
+```{r, eval=FALSE, include=FALSE}
+apoe_variants <- awk_str_filter(
+  filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  filter_col = "Gene.refGene",
+  filter_str = c("APOE"))
+
+apoe4_mask_res <- pmbb_extract_genotype_masks(
+  gene = "APOE",
+  annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  gene_col = "Gene.refGene",
+  masks = list(
+    apoe4_burden = list(avsnp150 = "%in% c('rs429358', 'rs7412')"),
+    apoe_single = list(avsnp150 = "%in% c('rs429358', 'rs7412')")
+  ),
+  mask_operator = list(
+    apoe4_burden = "burden",
+    apoe_single = "single"
+  ),
+  variant_id_col = ID,
+  effect_allele_col = Alt,
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+)
+
+job::job({run_pmbb_phewas_report(
+    gene = c("APOE"),
+    annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+    gene_col = "Gene.refGene",
+    masks = list(
+      # apoe4_burden = list(avsnp150 = "%in% c('rs429358', 'rs7412')"),
+      apoe_single = list(avsnp150 = "%in% c('rs429358', 'rs7412')")
+    ),
+    mask_operator = list(
+      # apoe4_burden = "burden",
+      apoe_single = "single"
+    ),
+    variant_id_col = ID,
+    effect_allele_col = Alt,
+    populations = c("ALL", "EUR", "AFR"),
+    covariate_population_col = "Class",
+    covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
+    mask_output_path = "APOE_mask_results.rds",  # Optional: Specify the output path for the mask results file
+    phewas_output_path = "APOE_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
+    phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+    covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+    bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
+    plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    cores = 16
+)}, title = "APOE PheWAS")
+```
+
+
+```{r, eval=FALSE, include=FALSE}
+  render_pmbb_phewas_report(
+    phewas_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/APOE_phewas_results.rds",
+    mask_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/APOE_mask_results.rds",
+    output_file = "APOE_report.html"
+  )
+
 ```
 
 

@@ -4,12 +4,10 @@
 #' 
 #' This function is a wrapper around the `run_pmbb_phewas` function that additionally generates an HTML report of the results.
 #' 
-#' @param mask_output_path (optional) Path to save the genotype output for each mask. If `NULL` the genotype output will not be saved (default: `NULL`)
-#' @param phewas_output_path (optional) Path to save the PheWAS output dataframe. If `NULL` the PheWAS output will not be saved separately from the report (default: `NULL`)
-#' @param report_output_path (optional) Path to save the HTML report. If `NULL`, the report will be saved in the working directory. (default: `NULL`)
 #' 
 #' @inheritParams run_pmbb_phewas
 #' @inheritParams pmbb_extract_genotype_masks
+#' @inheritParams render_pmbb_phewas_report
 #' 
 #' @return A named list containing the paths to the output files
 #' 

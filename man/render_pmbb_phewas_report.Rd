@@ -4,7 +4,13 @@
 \alias{render_pmbb_phewas_report}
 \title{Render PheWAS Report}
 \usage{
-render_pmbb_phewas_report(mask_output_path, phewas_output_path, output_file)
+render_pmbb_phewas_report(
+  mask_output_path,
+  phewas_output_path,
+  output_file,
+  template_path = NULL,
+  ...
+)
 }
 \arguments{
 \item{mask_output_path}{Path to the saved genotype output for each mask}
@@ -12,9 +18,13 @@ render_pmbb_phewas_report(mask_output_path, phewas_output_path, output_file)
 \item{phewas_output_path}{Path to the saved PheWAS output dataframe}
 
 \item{output_file}{Full path to save the HTML report}
+
+\item{template_path}{Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: \code{usethis::use_template(".phecode_phewas_template.qmd", save_as = "phecode_phewas_template.qmd", package = "pmbbPheWASr")}, which will be saved in the current working directory.}
+
+\item{...}{Additional named parameters to pass to the Quarto document}
 }
 \value{
-Path to the HTML report
+The function renders an HTML report and returns silently
 }
 \description{
 This function renders an HTML report from pre-saved genotype mask and PheWAS output files.
