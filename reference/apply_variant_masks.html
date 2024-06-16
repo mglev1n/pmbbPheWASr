@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">pmbbPheWASr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.0</span>
       </span>
     </div>
 
@@ -86,6 +86,14 @@ For example: list(plof_0.001 = list(ExonicFunc.ensGene = "= stopgain", gnomAD_ex
     <div id="ref-examples">
     <h2>Examples</h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Extract variants in a gene</span></span></span>
+<span class="r-in"><span><span class="va">ldlr_variants</span> <span class="op">&lt;-</span> <span class="fu"><a href="awk_str_filter.html">awk_str_filter</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  filename <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt"</span>,</span></span>
+<span class="r-in"><span>  filter_col <span class="op">=</span> <span class="st">"Gene.refGene"</span>,</span></span>
+<span class="r-in"><span>  filter_str <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"LDLR"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Apply the specified masks to the set of variants</span></span></span>
 <span class="r-in"><span><span class="fu">apply_variant_masks</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">ldlr_variants</span>,</span></span>
 <span class="r-in"><span>  masks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>

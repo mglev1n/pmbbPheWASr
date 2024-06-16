@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">pmbbPheWASr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2.0</span>
       </span>
     </div>
 
@@ -131,10 +131,10 @@ For example: list(plof_0.001 = "burden", common_0.01 = "single")</p></dd>
     
 
 <p>A named list, where each element represents a mask and contains a list with components based on the specified mask_operator:
-- If mask_operator is "burden" (default):
 - "variants": A <code><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble::tibble()</a></code> of the variants included in the mask.
 - "genotypes": A <code><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble::tibble()</a></code> containing the genotype for each PMBB participant.
-- "mask_type": A <code><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble::tibble()</a></code> containing the mask type applied (eg. "burden" or "single")</p>
+- "mask": A string containing the mask applied to filter the variants.
+- "mask_type": A <code><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble::tibble()</a></code> containing the mask type applied (eg. "burden" or "single").</p>
     </div>
 
     <div id="ref-examples">

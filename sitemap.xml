@@ -46,6 +46,12 @@
     <loc>/reference/pmbb_format_phecodes.html</loc>
   </url>
   <url>
+    <loc>/reference/render_pmbb_phewas_report.html</loc>
+  </url>
+  <url>
     <loc>/reference/run_pmbb_phewas.html</loc>
+  </url>
+  <url>
+    <loc>/reference/run_pmbb_phewas_report.html</loc>
   </url>
 </urlset>
