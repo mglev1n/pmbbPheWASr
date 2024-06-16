@@ -8,7 +8,7 @@
 [![R-CMD-check](https://github.com/mglev1n/pmbbPheWASr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mglev1n/pmbbPheWASr/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-The goal of pmbbPheWASr is to enable Penn Medicine Biobank researchers
+The goal of `pmbbPheWASr` is to enable Penn Medicine Biobank researchers
 to perform phenome-wide association studies (PheWAS) using Penn Medicine
 Biobank data. This package provides a set of tools to perform PheWAS
 analyses, including data cleaning, harmonization, and analysis.

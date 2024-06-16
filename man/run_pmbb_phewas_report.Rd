@@ -63,6 +63,8 @@ For example: list(plof_0.001 = "burden", common_0.01 = "single")}
 
 \item{phewas_output_path}{Path to the saved PheWAS output dataframe}
 
+\item{report_output_path}{(Optional) File name and path were the report should be saved. If not provided the report will be saved to the current directory}
+
 \item{...}{Additional arguments passed to \code{\link[PheWAS:phewas]{PheWAS::phewas()}}}
 }
 \value{

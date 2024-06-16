@@ -4,7 +4,7 @@
 #' 
 #' This function is a wrapper around the `run_pmbb_phewas` function that additionally generates an HTML report of the results.
 #' 
-#' 
+#' @param report_output_path (Optional) File name and path were the report should be saved. If not provided the report will be saved to the current directory
 #' @inheritParams run_pmbb_phewas
 #' @inheritParams pmbb_extract_genotype_masks
 #' @inheritParams render_pmbb_phewas_report
