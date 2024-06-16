@@ -179,7 +179,8 @@ apply_variant_masks <- function(annotation_df, masks) {
   
   # Apply the filter criteria to the data frame for each mask
   filtered_dfs <- purrr::map(masks, function(mask) {
-    filter_dataframe(annotation_df, mask)
+    list(variants = filter_dataframe(annotation_df, mask),
+         mask = deparse(mask))
   })
   
   # Set the names of the filtered data frames based on the names of the masks
@@ -191,6 +192,14 @@ apply_variant_masks <- function(annotation_df, masks) {
   
 ```{r example-apply_variant_masks, eval=FALSE}
 #' \dontrun{
+
+# Extract variants in a gene
+ldlr_variants <- awk_str_filter(
+  filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+  filter_col = "Gene.refGene",
+  filter_str = c("LDLR"))
+
+# Apply the specified masks to the set of variants
 apply_variant_masks(
   ldlr_variants,
   masks = list(
@@ -418,7 +427,8 @@ The `pmbb_extract_genotype_masks` function extracts genotypes for a subset of pa
 #' @return A named list, where each element represents a mask and contains a list with components based on the specified mask_operator:
 #'          - "variants": A [tibble::tibble()] of the variants included in the mask.
 #'          - "genotypes": A [tibble::tibble()] containing the genotype for each PMBB participant.
-#'          - "mask_type": A [tibble::tibble()] containing the mask type applied (eg. "burden" or "single")
+#'          - "mask": A string containing the mask applied to filter the variants.
+#'          - "mask_type": A [tibble::tibble()] containing the mask type applied (eg. "burden" or "single").
 #' @export
 
 pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, variant_id_col, effect_allele_col, mask_operator = NULL, plink_bin, bfile, threads = 1, memory = 8000) {
@@ -444,7 +454,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     cli::cli_progress_step("Extracting unique set of variant IDs across all masks")
     
     unique_variant_ids <- masked_variants %>%
-      purrr::map(~ dplyr::pull(.x, !!ensym(variant_id_col))) %>%
+      purrr::map(\(x) purrr::pluck(x, "variants") %>% dplyr::pull(!!ensym(variant_id_col))) %>%
       purrr::reduce(union)
     
     cli::cli_progress_step("Extracting genotypes for unique set of variant IDs")
@@ -461,10 +471,10 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     
     cli::cli_progress_step("Processing genotypes for each variant mask")
     
-    mask_list <- purrr::imap(masked_variants, function(variant_df, mask_name) {
+    mask_list <- purrr::imap(masked_variants, function(variant_list, mask_name) {
       mask_genotypes <- genotype_df %>%
         dplyr::mutate(ID = stringr::str_replace(variant_id, "_[^_]+$", "")) %>%
-        dplyr::filter(ID %in% (variant_df %>% dplyr::pull(!!ensym(variant_id_col))))
+        dplyr::filter(ID %in% (variant_list %>% purrr::pluck("variants") %>% dplyr::pull(!!ensym(variant_id_col))))
       
       if (is.null(mask_operator) || mask_operator[[mask_name]] == "burden") {
         mask_genotypes_summarized <- mask_genotypes %>%
@@ -472,8 +482,9 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
           dplyr::summarize(genotype = sum(genotype, na.rm = TRUE), .groups = "drop") %>%
           dplyr::select(dplyr::everything(), genotype)
         
-        list(variants = variant_df %>% filter(!!ensym(variant_id_col) %in% mask_genotypes$ID),
+        list(variants = variant_list %>% purrr::pluck("variants") %>% filter(!!ensym(variant_id_col) %in% mask_genotypes$ID),
              genotypes = mask_genotypes_summarized,
+             mask = variant_list %>% purrr::pluck("mask"),
              mask_type = "burden")
         
       } else if (mask_operator[[mask_name]] == "single") {
@@ -484,8 +495,9 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
           
           list(
             name = paste(mask_name, variant, sep = "_"),
-            variants = variant_df %>% dplyr::filter(!!ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
+            variants = variant_list %>% purrr::pluck("variants") %>% dplyr::filter(!!ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
             genotypes = variant_genotypes,
+            mask = variant_list %>% purrr::pluck("mask"),
             mask_type = "single"
           )
         })
@@ -499,7 +511,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     # Flatten the single-variant masks and set their names
     single_mask_list <- purrr::flatten(mask_list[names(mask_list) %in% names(mask_operator)[mask_operator == "single"]])
     names(single_mask_list) <- purrr::map_chr(single_mask_list, "name")
-    single_mask_list <- purrr::map(single_mask_list, ~ purrr::keep(.x, names(.x) %in% c("variants", "genotypes", "mask_type")))
+    single_mask_list <- purrr::map(single_mask_list, ~ purrr::keep(.x, names(.x) %in% c("variants", "genotypes", "mask", "mask_type")))
     
     # Combine the burden and single-variant masks into the final mask_list
     final_mask_list <- c(mask_list[names(mask_list) %in% burden_mask_names], single_mask_list)
@@ -735,7 +747,7 @@ The `run_pmbb_phewas` function runs a PheWAS on the PMBB data, using the results
 #' @param phenotype_case_count The minimum number of codes required to be considered a case (Default: 2)
 #' @param ... Additional arguments passed to [PheWAS::phewas()]
 
-#' @return A list containing dataframes including the results of the PheWAS for each population
+#' @return A [tibble::tibble()] containing the results of the PheWAS for each population and mask
 #' 
 #' @export
 run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, populations = c("ALL"), covariate_cols, covariate_population_col = NULL, phenotype_case_count = 2, ...) {
@@ -755,7 +767,7 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   } else {
     cli::cli_abort("{.arg phecode_file} must be a file path or a dataframe")
   }
-  
+
   # Format covariate data
   if (is.character(covariate_files)) {
     covariate_df <- pmbb_format_covariates(covariate_files, {{ covariate_cols }}, !!ensym(covariate_population_col), populations)
@@ -764,44 +776,49 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   } else {
     cli::cli_abort("{.arg covariate_files} must be file paths or a dataframe")
   }
-  
+
   # Run PheWAS
   cli::cli_progress_step("Running PheWAS")
 
   phewas_combos <- tidyr::expand_grid(genotype_masks = mask_genotypes_list, population = populations) %>%
     dplyr::mutate(mask_name = purrr::imap(genotype_masks, ~.y)) %>%
     tidyr::unnest(mask_name)
-  
+
   phewas_res_list <- purrr::pmap(phewas_combos, \(genotype_masks, population, mask_name) {
-      
-      if(population != "ALL") {
-        covariate_df <- covariate_df %>%
-          dplyr::filter(!!ensym(covariate_population_col) == population) %>%
-          dplyr::select(-!!ensym(covariate_population_col))
-      } else {
-        covariate_df <- covariate_df %>%
-          dplyr::select(-!!ensym(covariate_population_col))
-      }
-    
-      additive <- dplyr::if_else(genotype_masks %>% purrr::pluck("mask_type") == "single", TRUE, FALSE)
-    
-      phewas_res <- PheWAS::phewas(
-        genotypes = genotype_masks %>% purrr::pluck("genotypes"),
-        phenotypes = phecode_df,
-        covariates = covariate_df,
-        # additive.genotypes = additive,
-        ...
-      )
-      
-      return(dplyr::tibble(mask_name = mask_name, 
-                           population = population, 
-                           phewas_res))
-      
-    }) %>%
+    if (population != "ALL") {
+      covariate_df <- covariate_df %>%
+        dplyr::filter(!!ensym(covariate_population_col) == population) %>%
+        dplyr::select(-!!ensym(covariate_population_col))
+    } else {
+      covariate_df <- covariate_df %>%
+        dplyr::select(-!!ensym(covariate_population_col))
+    }
+
+    allele_counts <- genotype_masks %>%
+      purrr::pluck("genotypes") %>%
+      count(genotype)
+
+    additive <- dplyr::if_else(genotype_masks %>% purrr::pluck("mask_type") == "single", TRUE, FALSE)
+
+    phewas_res <- PheWAS::phewas(
+      genotypes = genotype_masks %>% purrr::pluck("genotypes"),
+      phenotypes = phecode_df,
+      covariates = covariate_df,
+      # additive.genotypes = additive,
+      ...
+    )
+
+    dplyr::tibble(
+      mask_name = mask_name,
+      population = population,
+      allele_counts = list(allele_counts),
+      covariates = list(names(covariate_df %>% dplyr::select(-PMBB_ID))),
+      phewas_res
+    )
+  }) %>%
     purrr::list_rbind()
-  
+
   return(phewas_res_list)
-  
 }
 ```
   
@@ -866,7 +883,7 @@ test_that("run_pmbb_phewas works", {
   suppressWarnings(
     phewas_res <- run_pmbb_phewas(
       mask_genotypes_list = ldlr_mask_res %>% head(2),
-      phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(10000),
+      phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(100),
       covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
       populations = c("ALL", "EUR"),
       covariate_population_col = "Class",
@@ -895,7 +912,6 @@ The `run_pmbb_phewas_report` function is a wrapper around the `run_pmbb_phewas` 
 #' @inheritParams pmbb_extract_genotype_masks
 #' 
 #' @return A named list containing the paths to the output files
-#' 
 #' 
 #' @export
 run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_operator, variant_id_col, effect_allele_col, plink_bin, bfile, phecode_file, covariate_files, populations, covariate_population_col, covariate_cols, mask_output_path = NULL, phewas_output_path = NULL, report_output_path = NULL, ...) {
@@ -945,7 +961,7 @@ run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_
   timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
   
   # Generate the output file name with the timestamp and collapsed gene names
-  output_file <- paste0(gene_names_collapsed, "_", timestamp, "_phewas_report.html")
+  output_file <- paste0(gene_names_collapsed, "_", "phewas_report_", timestamp,".html")
   
   # Set the full output file path
   if (!is.null(report_output_path)) {
@@ -975,23 +991,25 @@ run_pmbb_phewas_report(
   annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
   gene_col = "Gene.refGene",
   masks = list(
-    plof_0.01 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.01")
+    plof_0.01 = list(ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+    missense_0.01 = list(ExonicFunc.ensGene = "%in% c('nonsynonymous SNV')", gnomAD_exome_ALL = "< 0.01")
   ),
   mask_operator = list(
-    plof_0.01 = "burden"
+    plof_0.01 = "burden",
+    missense_0.01 = "burden"
   ),
   variant_id_col = ID,
   effect_allele_col = Alt,
-  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
-  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
-  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
-  populations = c("ALL", "EUR", "AFR"),
+  populations = c("ALL"),
   covariate_population_col = "Class",
   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
   mask_output_path = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
   phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
-  cores = parallelly::availableCores()
+  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
+  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+  cores = 16
 )
 #' }
 ```
@@ -1000,29 +1018,7 @@ run_pmbb_phewas_report(
 test_that("run_phewas_report works", {
   expect_true(inherits(run_pmbb_phewas_report, "function")) 
   skip()
-  run_pmbb_phewas_report(
-  gene = c("LDLR"),
-  annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
-  gene_col = "Gene.refGene",
-  masks = list(
-    plof_0.01 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.01")
-  ),
-  mask_operator = list(
-    plof_0.01 = "burden"
-  ),
-  variant_id_col = ID,
-  effect_allele_col = Alt,
-  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
-  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
-  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
-  populations = c("ALL", "EUR", "AFR"),
-  covariate_population_col = "Class",
-  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
-  mask_output_path = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
-  phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
-  cores = parallelly::availableCores()
-)
+
 })
 ```
 
@@ -1044,13 +1040,16 @@ test_that("run_phewas_report works", {
 render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, output_file) {
   
   # Get the function call as a string
-  function_call <- deparse(sys.call(-1))
+  # function_call <- deparse(sys.call(-1))
   
   # # Collapse the gene names into a single string
   # gene_names_collapsed <- glue::glue_collapse(gene, sep = "-")
   
   # Render the Quarto document using the saved files, function call, and gene names as execute_params
-  usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
+  
+  if(!file.exists(".phecode_phewas_templated.qmd")) {
+   usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
+  }
   
   quarto::quarto_render(
     input = ".phecode_phewas_template.qmd",
@@ -1061,6 +1060,8 @@ render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, outp
     ),
     output_file = output_file
   )
+  
+  # fs::file_delete(".phecode_phewas_template.qmd")
   
   # Return the path to the generated report file
   return(output_file)
@@ -1088,7 +1089,6 @@ test_that("render_pmbb_phewas_report works", {
   
 
 ```{r, eval=FALSE, include=FALSE}
-
 run_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_operator, variant_id_col, effect_allele_col, plink_bin, bfile, phecode_file, covariate_files, populations, covariate_population_col, covariate_cols, mask_output_path = NULL, phewas_output_path = NULL, ...) {
   
   # Get the function call as a string
@@ -1159,17 +1159,20 @@ run_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_opera
     phewas_output_path = phewas_output_path
   ))
 }
+```
 
+
+```{r, eval=FALSE, include=FALSE}
 # Example usage
-run_phewas_report(
+run_pmbb_phewas_report(
   gene = c("LDLR"),
   annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
   gene_col = "Gene.refGene",
   masks = list(
-    plof_0.01 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.01")
+    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001")
   ),
   mask_operator = list(
-    plof_0.01 = "burden"
+    plof_0.001 = "burden"
   ),
   variant_id_col = ID,
   effect_allele_col = Alt,
@@ -1182,7 +1185,7 @@ run_phewas_report(
   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
   mask_output_path = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
   phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
-  cores = parallelly::availableCores()
+  cores = 16
 )
 ```
 

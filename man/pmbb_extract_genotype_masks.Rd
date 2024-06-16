@@ -50,7 +50,8 @@ For example: list(plof_0.001 = "burden", common_0.01 = "single")}
 A named list, where each element represents a mask and contains a list with components based on the specified mask_operator:
 - "variants": A \code{\link[tibble:tibble]{tibble::tibble()}} of the variants included in the mask.
 - "genotypes": A \code{\link[tibble:tibble]{tibble::tibble()}} containing the genotype for each PMBB participant.
-- "mask_type": A \code{\link[tibble:tibble]{tibble::tibble()}} containing the mask type applied (eg. "burden" or "single")
+- "mask": A string containing the mask applied to filter the variants.
+- "mask_type": A \code{\link[tibble:tibble]{tibble::tibble()}} containing the mask type applied (eg. "burden" or "single").
 }
 \description{
 This function extracts genotypes for a subset of participants based on a set of masks. It wraps \code{awk_str_filter}, \code{apply_variant_masks}, and \code{pmbb_extract_genotypes} to extract genotypes for PMBB participants based on a set of masks.

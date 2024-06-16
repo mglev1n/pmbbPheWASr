@@ -19,13 +19,16 @@
 render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, output_file) {
   
   # Get the function call as a string
-  function_call <- deparse(sys.call(-1))
+  # function_call <- deparse(sys.call(-1))
   
   # # Collapse the gene names into a single string
   # gene_names_collapsed <- glue::glue_collapse(gene, sep = "-")
   
   # Render the Quarto document using the saved files, function call, and gene names as execute_params
-  usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
+  
+  if(!file.exists(".phecode_phewas_templated.qmd")) {
+   usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
+  }
   
   quarto::quarto_render(
     input = ".phecode_phewas_template.qmd",
@@ -36,6 +39,8 @@ render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, outp
     ),
     output_file = output_file
   )
+  
+  # fs::file_delete(".phecode_phewas_template.qmd")
   
   # Return the path to the generated report file
   return(output_file)

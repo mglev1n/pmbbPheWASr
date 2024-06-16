@@ -15,6 +15,14 @@
 #' @export
 #' @examples
 #' \dontrun{
+#'
+#' # Extract variants in a gene
+#' ldlr_variants <- awk_str_filter(
+#'   filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+#'   filter_col = "Gene.refGene",
+#'   filter_str = c("LDLR"))
+#'
+#' # Apply the specified masks to the set of variants
 #' apply_variant_masks(
 #'   ldlr_variants,
 #'   masks = list(
@@ -38,7 +46,8 @@ apply_variant_masks <- function(annotation_df, masks) {
   
   # Apply the filter criteria to the data frame for each mask
   filtered_dfs <- purrr::map(masks, function(mask) {
-    filter_dataframe(annotation_df, mask)
+    list(variants = filter_dataframe(annotation_df, mask),
+         mask = deparse(mask))
   })
   
   # Set the names of the filtered data frames based on the names of the masks

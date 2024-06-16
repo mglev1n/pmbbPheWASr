@@ -33,7 +33,7 @@ run_pmbb_phewas(
 \item{...}{Additional arguments passed to \code{\link[PheWAS:phewas]{PheWAS::phewas()}}}
 }
 \value{
-A list containing dataframes including the results of the PheWAS for each population
+A \code{\link[tibble:tibble]{tibble::tibble()}} containing the results of the PheWAS for each population and mask
 }
 \description{
 This function runs a PheWAS on PMBB data, using genotype information and paths to PMBB files containing phenotype and covariate data. The function ideally accepts genotype information from the \code{pmbb_extract_genotype_masks} function, but can accept any genotype information of the format \code{list(mask_name = list(genotypes = data.frame(PMBB_ID = character(), genotype = character())))}

@@ -24,7 +24,8 @@
 #' @return A named list, where each element represents a mask and contains a list with components based on the specified mask_operator:
 #'          - "variants": A [tibble::tibble()] of the variants included in the mask.
 #'          - "genotypes": A [tibble::tibble()] containing the genotype for each PMBB participant.
-#'          - "mask_type": A [tibble::tibble()] containing the mask type applied (eg. "burden" or "single")
+#'          - "mask": A string containing the mask applied to filter the variants.
+#'          - "mask_type": A [tibble::tibble()] containing the mask type applied (eg. "burden" or "single").
 #' @export
 #' @examples
 #' \dontrun{
@@ -69,7 +70,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     cli::cli_progress_step("Extracting unique set of variant IDs across all masks")
     
     unique_variant_ids <- masked_variants %>%
-      purrr::map(~ dplyr::pull(.x, !!ensym(variant_id_col))) %>%
+      purrr::map(\(x) purrr::pluck(x, "variants") %>% dplyr::pull(!!ensym(variant_id_col))) %>%
       purrr::reduce(union)
     
     cli::cli_progress_step("Extracting genotypes for unique set of variant IDs")
@@ -86,10 +87,10 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     
     cli::cli_progress_step("Processing genotypes for each variant mask")
     
-    mask_list <- purrr::imap(masked_variants, function(variant_df, mask_name) {
+    mask_list <- purrr::imap(masked_variants, function(variant_list, mask_name) {
       mask_genotypes <- genotype_df %>%
         dplyr::mutate(ID = stringr::str_replace(variant_id, "_[^_]+$", "")) %>%
-        dplyr::filter(ID %in% (variant_df %>% dplyr::pull(!!ensym(variant_id_col))))
+        dplyr::filter(ID %in% (variant_list %>% purrr::pluck("variants") %>% dplyr::pull(!!ensym(variant_id_col))))
       
       if (is.null(mask_operator) || mask_operator[[mask_name]] == "burden") {
         mask_genotypes_summarized <- mask_genotypes %>%
@@ -97,8 +98,9 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
           dplyr::summarize(genotype = sum(genotype, na.rm = TRUE), .groups = "drop") %>%
           dplyr::select(dplyr::everything(), genotype)
         
-        list(variants = variant_df %>% filter(!!ensym(variant_id_col) %in% mask_genotypes$ID),
+        list(variants = variant_list %>% purrr::pluck("variants") %>% filter(!!ensym(variant_id_col) %in% mask_genotypes$ID),
              genotypes = mask_genotypes_summarized,
+             mask = variant_list %>% purrr::pluck("mask"),
              mask_type = "burden")
         
       } else if (mask_operator[[mask_name]] == "single") {
@@ -109,8 +111,9 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
           
           list(
             name = paste(mask_name, variant, sep = "_"),
-            variants = variant_df %>% dplyr::filter(!!ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
+            variants = variant_list %>% purrr::pluck("variants") %>% dplyr::filter(!!ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
             genotypes = variant_genotypes,
+            mask = variant_list %>% purrr::pluck("mask"),
             mask_type = "single"
           )
         })
@@ -124,7 +127,7 @@ pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, 
     # Flatten the single-variant masks and set their names
     single_mask_list <- purrr::flatten(mask_list[names(mask_list) %in% names(mask_operator)[mask_operator == "single"]])
     names(single_mask_list) <- purrr::map_chr(single_mask_list, "name")
-    single_mask_list <- purrr::map(single_mask_list, ~ purrr::keep(.x, names(.x) %in% c("variants", "genotypes", "mask_type")))
+    single_mask_list <- purrr::map(single_mask_list, ~ purrr::keep(.x, names(.x) %in% c("variants", "genotypes", "mask", "mask_type")))
     
     # Combine the burden and single-variant masks into the final mask_list
     final_mask_list <- c(mask_list[names(mask_list) %in% burden_mask_names], single_mask_list)

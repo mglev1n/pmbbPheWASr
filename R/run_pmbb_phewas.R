@@ -13,7 +13,7 @@
 #' @param phenotype_case_count The minimum number of codes required to be considered a case (Default: 2)
 #' @param ... Additional arguments passed to [PheWAS::phewas()]
 
-#' @return A list containing dataframes including the results of the PheWAS for each population
+#' @return A [tibble::tibble()] containing the results of the PheWAS for each population and mask
 #' 
 #' @export
 #' @examples
@@ -63,7 +63,7 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   } else {
     cli::cli_abort("{.arg phecode_file} must be a file path or a dataframe")
   }
-  
+
   # Format covariate data
   if (is.character(covariate_files)) {
     covariate_df <- pmbb_format_covariates(covariate_files, {{ covariate_cols }}, !!ensym(covariate_population_col), populations)
@@ -72,42 +72,47 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   } else {
     cli::cli_abort("{.arg covariate_files} must be file paths or a dataframe")
   }
-  
+
   # Run PheWAS
   cli::cli_progress_step("Running PheWAS")
 
   phewas_combos <- tidyr::expand_grid(genotype_masks = mask_genotypes_list, population = populations) %>%
     dplyr::mutate(mask_name = purrr::imap(genotype_masks, ~.y)) %>%
     tidyr::unnest(mask_name)
-  
+
   phewas_res_list <- purrr::pmap(phewas_combos, \(genotype_masks, population, mask_name) {
-      
-      if(population != "ALL") {
-        covariate_df <- covariate_df %>%
-          dplyr::filter(!!ensym(covariate_population_col) == population) %>%
-          dplyr::select(-!!ensym(covariate_population_col))
-      } else {
-        covariate_df <- covariate_df %>%
-          dplyr::select(-!!ensym(covariate_population_col))
-      }
-    
-      additive <- dplyr::if_else(genotype_masks %>% purrr::pluck("mask_type") == "single", TRUE, FALSE)
-    
-      phewas_res <- PheWAS::phewas(
-        genotypes = genotype_masks %>% purrr::pluck("genotypes"),
-        phenotypes = phecode_df,
-        covariates = covariate_df,
-        # additive.genotypes = additive,
-        ...
-      )
-      
-      return(dplyr::tibble(mask_name = mask_name, 
-                           population = population, 
-                           phewas_res))
-      
-    }) %>%
+    if (population != "ALL") {
+      covariate_df <- covariate_df %>%
+        dplyr::filter(!!ensym(covariate_population_col) == population) %>%
+        dplyr::select(-!!ensym(covariate_population_col))
+    } else {
+      covariate_df <- covariate_df %>%
+        dplyr::select(-!!ensym(covariate_population_col))
+    }
+
+    allele_counts <- genotype_masks %>%
+      purrr::pluck("genotypes") %>%
+      count(genotype)
+
+    additive <- dplyr::if_else(genotype_masks %>% purrr::pluck("mask_type") == "single", TRUE, FALSE)
+
+    phewas_res <- PheWAS::phewas(
+      genotypes = genotype_masks %>% purrr::pluck("genotypes"),
+      phenotypes = phecode_df,
+      covariates = covariate_df,
+      # additive.genotypes = additive,
+      ...
+    )
+
+    dplyr::tibble(
+      mask_name = mask_name,
+      population = population,
+      allele_counts = list(allele_counts),
+      covariates = list(names(covariate_df %>% dplyr::select(-PMBB_ID))),
+      phewas_res
+    )
+  }) %>%
     purrr::list_rbind()
-  
+
   return(phewas_res_list)
-  
 }

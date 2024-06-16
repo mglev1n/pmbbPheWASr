@@ -13,7 +13,6 @@
 #' 
 #' @return A named list containing the paths to the output files
 #' 
-#' 
 #' @export
 #' @examples
 #' \dontrun{
@@ -22,23 +21,25 @@
 #'   annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
 #'   gene_col = "Gene.refGene",
 #'   masks = list(
-#'     plof_0.01 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.01")
+#'     plof_0.01 = list(ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+#'     missense_0.01 = list(ExonicFunc.ensGene = "%in% c('nonsynonymous SNV')", gnomAD_exome_ALL = "< 0.01")
 #'   ),
 #'   mask_operator = list(
-#'     plof_0.01 = "burden"
+#'     plof_0.01 = "burden",
+#'     missense_0.01 = "burden"
 #'   ),
 #'   variant_id_col = ID,
 #'   effect_allele_col = Alt,
-#'   plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-#'   bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
-#'   phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
-#'   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
-#'   populations = c("ALL", "EUR", "AFR"),
+#'   populations = c("ALL"),
 #'   covariate_population_col = "Class",
 #'   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
 #'   mask_output_path = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
 #'   phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
-#'   cores = parallelly::availableCores()
+#'   phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+#'   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+#'   bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
+#'   plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+#'   cores = 16
 #' )
 #' }
 run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_operator, variant_id_col, effect_allele_col, plink_bin, bfile, phecode_file, covariate_files, populations, covariate_population_col, covariate_cols, mask_output_path = NULL, phewas_output_path = NULL, report_output_path = NULL, ...) {
@@ -88,7 +89,7 @@ run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_
   timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
   
   # Generate the output file name with the timestamp and collapsed gene names
-  output_file <- paste0(gene_names_collapsed, "_", timestamp, "_phewas_report.html")
+  output_file <- paste0(gene_names_collapsed, "_", "phewas_report_", timestamp,".html")
   
   # Set the full output file path
   if (!is.null(report_output_path)) {
