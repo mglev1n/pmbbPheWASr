@@ -1040,11 +1040,11 @@ render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, outp
   
   if(!is.null(template_path)) {
     if(!file.exists(template_path)) {
-    cli::cli_abort("{.arg template_path} does not exist. Please provide a valid path to a Quarto template file.")
+    cli::cli_abort("{.arg {template_path}} does not exist. Please provide a valid path to a Quarto template file.")
   }
   } else {
     template_path <- ".phecode_phewas_template.qmd"
-    usethis::use_template(".phecode_phewas_template.qmd", package = "pmbbPheWASr")
+    usethis::use_template(template = "phecode_phewas_template.qmd", save_as = ".phecode_phewas_template.qmd", package = "pmbbPheWASr")
   }
   
   quarto::quarto_render(
@@ -1055,8 +1055,12 @@ render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, outp
       phewas_results = fs::path_abs(phewas_output_path),
       ...
     ),
-    output_file = output_file
+    output_file = basename(output_file)
   )
+  
+  fs::dir_create(fs::path_dir(output_file))
+  
+  fs::file_move(basename(output_file), output_file)
   
   fs::file_delete(".phecode_phewas_template.qmd")
   
