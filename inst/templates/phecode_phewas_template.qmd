@@ -54,7 +54,7 @@ reactable(mtcars)
 
 render_phecode_reactable <- function(phewas_res_df, ...) {
   phewas_res_df %>%
-    ungroup %>%
+    ungroup() %>%
     select(-adjustment, -snp) %>%
     PheWAS::addPhecodeInfo() %>%
     select(phenotype, description, everything()) %>%
@@ -63,50 +63,70 @@ render_phecode_reactable <- function(phewas_res_df, ...) {
     reactable(
       filterable = TRUE,
       searchable = TRUE,
-      compact = TRUE, 
-      bordered = TRUE, 
-      striped = TRUE, 
+      compact = TRUE,
+      bordered = TRUE,
+      striped = TRUE,
       highlight = TRUE,
       wrap = FALSE,
-      columns = list(p = colDef(cell = function(value) {
-        format(signif(value, 3))
-      }),
-      mask_name = colDef(width = 150),
-      phenotype = colDef(width = 150),
-      description = colDef(width = 150),
-      group = colDef(width = 150)),
+      columns = list(
+        p = colDef(cell = function(value) {
+          format(signif(value, 3))
+        }),
+        mask_name = colDef(width = 150),
+        phenotype = colDef(width = 150),
+        description = colDef(width = 150),
+        group = colDef(width = 150)
+      ),
       ...
     )
 }
 
 plot_phewas_manhattan <- function(phewas_res_df, ...) {
+  if (nrow(phewas_res_df %>% filter(!is.na(p))) == 0) {
+    empty_plot <- ggplot() +
+      theme_void() +
+      annotate("text", x = 0, y = 0, label = "No associations found", size = 6, color = "black") +
+      theme(plot.margin = margin(20, 20, 20, 20))
+
+    return(empty_plot)
+  }
+
   phewas_res_df %>%
-  PheWAS::phewasManhattan(
-    OR.direction = TRUE,
-    OR.size = TRUE,
-    sort.by.category.value = TRUE,
-    # suggestive.line = FALSE,
-    annotate.phenotype.description = TRUE,
-    annotate.size = 4,
-    title = NULL,
-    x.axis.label = NULL,
-    y.axis.label = expression(-log[10]("p-value")),
-    color.palette = viridis::viridis_pal(option = params$viridis_color_scheme)(20),
-    ...
-  ) +
-  scale_shape_manual(values = c(25, 24),
-                     labels = c("Decrease", "Increase"),
-                     name = "Effect direction"
-                     ) +
+    PheWAS::phewasManhattan(
+      OR.direction = TRUE,
+      OR.size = TRUE,
+      sort.by.category.value = TRUE,
+      # suggestive.line = FALSE,
+      annotate.phenotype.description = TRUE,
+      annotate.size = 4,
+      title = NULL,
+      x.axis.label = NULL,
+      y.axis.label = expression(-log[10]("p-value")),
+      color.palette = viridis::viridis_pal(option = params$viridis_color_scheme)(20),
+      ...
+    ) +
+    scale_shape_manual(
+      values = c(25, 24),
+      labels = c("Decrease", "Increase"),
+      name = "Effect direction"
+    ) +
     theme_bw(base_size = 16) +
     theme(
-        panel.background=element_blank(),
-        panel.grid.minor=element_blank(),
-        axis.text.x=element_text(angle=-40, hjust=0, vjust=1)
-      )
+      panel.background = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.text.x = element_text(angle = -40, hjust = 0, vjust = 1)
+    )
+}
+
+render_callout <- function(title, message, callout_type = "important") {
+  cat(glue::glue("\n::: {.callout-{{callout_type}}  appearance='simple'}\n", .open = "{{", .close = "}}"))
+  cat("\n## ", title, "\n\n", message, "\n")
+  cat("\n:::\n")
+  cat("\n\n")
 }
 
 ```
+
 
 ```{r load-data}
 phewas_res <- readRDS(params$phewas_results)
@@ -151,7 +171,7 @@ purrr::pwalk(phewas_res_nested, \(mask_name, data) {
   cat("\n")
   cat(glue::glue("**Mask type**: {masks_res %>% pluck(mask_name, 'mask_type')} \n\n"))
   cat("\n\n")
-  
+
   masks_res %>%
     pluck(mask_name, "mask") %>%
     rlang::parse_expr() %>%
@@ -168,78 +188,94 @@ purrr::pwalk(phewas_res_nested, \(mask_name, data) {
 
   cat("\n:::\n")
   cat("\n\n")
-  cat("\n::: {.callout-tip collapse='true' appearance='simple' icon=false}\n")
-  cat("## Variant information\n\n")
 
-  masks_res %>%
-    pluck(mask_name, "variants") %>%
-    reactable(
-      filterable = TRUE,
-      searchable = TRUE,
-      compact = TRUE,
-      bordered = TRUE,
-      striped = TRUE,
-      highlight = TRUE,
-      wrap = FALSE
-    ) %>%
-    shiny::tagList() %>%
-    print()
+  variant_info <- masks_res %>%
+    pluck(mask_name, "variants")
 
-  cat("\n:::\n")
-  cat("\n\n")
+  if (nrow(variant_info) == 0) {
+    render_callout("Variant Information", "No variants were found for this mask.", "important")
+  } else {
+    cat("\n::: {.callout-tip collapse='true' appearance='simple' icon=false}\n")
+    cat("## Variant information\n\n")
 
-  dataset <- data %>%
-    group_nest(population, keep = TRUE)
+    variant_info %>%
+      reactable(
+        filterable = TRUE,
+        searchable = TRUE,
+        compact = TRUE,
+        bordered = TRUE,
+        striped = TRUE,
+        highlight = TRUE,
+        wrap = FALSE
+      ) %>%
+      shiny::tagList() %>%
+      print()
 
-  if ("ALL" %in% dataset$population) {
-    dataset <- dataset %>%
-      mutate(population = fct_relevel(population, "ALL")) %>%
-      arrange(population)
+    cat("\n:::\n")
+    cat("\n\n")
   }
 
-  # print ancestry plots/tables
-  cat("\n::: panel-tabset\n")
-purrr::pwalk(dataset, \(population, data) {
-  cat(paste0("\n#### ", population, "\n\n"))
-  
-  data %>%
-    select(-allele_counts) %>%
-    plot_phewas_manhattan() %>%
-    print()
-  
-  htmltools::tags$br() %>% print()
-  
-  data_table <- data %>%
-    select(-allele_counts, -covariates) %>%
-    filter(!is.na(p)) %>%
-    arrange(p)
-  
-  table_id <- uuid::UUIDgenerate() 
-  table_filename <- fs::path_sanitize(glue::glue_collapse(c(params$gene_names, mask_name, unique(data_table$population), ".csv"), sep = "_", last = ""))
 
-  htmltools::tagList(
-    htmltools::tags$button(
-      "Download as CSV",
-      onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", table_id, table_filename)
-    ),
-    render_phecode_reactable(data_table, elementId = table_id)
-  ) %>%
-    print()                            
-  
-  cat("\n**Allele Counts:**\n")
-  
-  data %>%
-    head(1) %>%
-    pull(allele_counts) %>% purrr::pluck(1) %>%
-    reactable(
-      compact = TRUE,
-      bordered = TRUE,
-      highlight = TRUE,
-      fullWidth = FALSE
-    ) %>%
-    shiny::tagList() %>%
-    print()
-})
+  # print ancestry plots/tables
+  if (nrow(variant_info) == 0) {
+    # return early if no variants are present
+    return()
+  } else {
+    dataset <- data %>%
+      group_nest(population, keep = TRUE)
+
+    if ("ALL" %in% dataset$population) {
+      dataset <- dataset %>%
+        mutate(population = fct_relevel(population, "ALL")) %>%
+        arrange(population)
+    }
+
+    # print ancestry plots/tables
+    cat("\n::: panel-tabset\n")
+    purrr::pwalk(dataset, \(population, data) {
+      cat(paste0("\n#### ", population, "\n\n"))
+
+      data %>%
+        select(-allele_counts) %>%
+        plot_phewas_manhattan() %>%
+        print()
+
+      htmltools::tags$br() %>% print()
+
+      data_table <- data %>%
+        select(-allele_counts, -covariates) %>%
+        # filter(!is.na(p)) %>%
+        arrange(p)
+
+      table_id <- uuid::UUIDgenerate()
+      table_filename <- fs::path_sanitize(glue::glue_collapse(c(params$gene_names, mask_name, unique(data_table$population), ".csv"), sep = "_", last = ""))
+
+      htmltools::tagList(
+        htmltools::tags$button(
+          "Download as CSV",
+          onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", table_id, table_filename)
+        ),
+        render_phecode_reactable(data_table, elementId = table_id)
+      ) %>%
+        print()
+
+      cat("\n**Allele Counts:**\n")
+
+      data %>%
+        head(1) %>%
+        pull(allele_counts) %>%
+        purrr::pluck(1) %>%
+        reactable(
+          compact = TRUE,
+          bordered = TRUE,
+          highlight = TRUE,
+          fullWidth = FALSE
+        ) %>%
+        shiny::tagList() %>%
+        print()
+    })
+  }
+
   cat("\n:::\n")
 
   cat("\n---\n")
@@ -271,4 +307,3 @@ pkg_sesh
 ```
 
 </details>
-

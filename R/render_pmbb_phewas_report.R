@@ -7,7 +7,7 @@
 #' @param mask_output_path Path to the saved genotype output for each mask
 #' @param phewas_output_path Path to the saved PheWAS output dataframe
 #' @param output_file Full path to save the HTML report
-#' @param template_path Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: `usethis::use_template(".phecode_phewas_template.qmd", save_as = "phecode_phewas_template.qmd", package = "pmbbPheWASr")`, which will be saved in the current working directory.
+#' @param template_path Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: `usethis::use_template("phecode_phewas_template.qmd", save_as = "phecode_phewas_template.qmd", package = "pmbbPheWASr")`, which will be saved in the current working directory.
 #' @param ... Additional named parameters to pass to the Quarto document
 #' 
 #' @return The function renders an HTML report and returns silently
@@ -43,7 +43,9 @@ render_pmbb_phewas_report <- function(mask_output_path, phewas_output_path, outp
   
   fs::file_move(basename(output_file), output_file)
   
-  fs::file_delete(".phecode_phewas_template.qmd")
+  if(file.exists(".phecode_phewas_template.qmd")) {
+   fs::file_delete(".phecode_phewas_template.qmd") 
+  }
   
   # Return the path to the generated report file
   cli::cli_alert_success("PheWAS report rendered successfully: {.val {output_file}}")

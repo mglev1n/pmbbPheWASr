@@ -473,11 +473,11 @@ job::job({run_pmbb_phewas_report(
 ```
 
 ```{r eval = FALSE, include = FALSE}
-  render_pmbb_phewas_report(
-    phewas_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/APOE_phewas_results.rds",
-    mask_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/APOE_mask_results.rds",
-    output_file = "APOE_report.html"
-  )
+render_pmbb_phewas_report(
+  phewas_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/APOE_phewas_results.rds",
+  mask_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/APOE_mask_results.rds",
+  output_file = "APOE_report.html"
+)
 
 ```
 

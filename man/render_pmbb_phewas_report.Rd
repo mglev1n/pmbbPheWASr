@@ -19,7 +19,7 @@ render_pmbb_phewas_report(
 
 \item{output_file}{Full path to save the HTML report}
 
-\item{template_path}{Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: \code{usethis::use_template(".phecode_phewas_template.qmd", save_as = "phecode_phewas_template.qmd", package = "pmbbPheWASr")}, which will be saved in the current working directory.}
+\item{template_path}{Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: \code{usethis::use_template("phecode_phewas_template.qmd", save_as = "phecode_phewas_template.qmd", package = "pmbbPheWASr")}, which will be saved in the current working directory.}
 
 \item{...}{Additional named parameters to pass to the Quarto document}
 }
