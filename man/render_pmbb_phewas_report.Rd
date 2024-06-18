@@ -13,9 +13,9 @@ render_pmbb_phewas_report(
 )
 }
 \arguments{
-\item{mask_output_path}{Path to the saved genotype output for each mask}
+\item{mask_output_path}{Path to the saved genotype output for each mask or an R list object containing the output of \link{pmbb_extract_genotype_masks}}
 
-\item{phewas_output_path}{Path to the saved PheWAS output dataframe}
+\item{phewas_output_path}{Path to the saved PheWAS output dataframe or an R dataframe object containing the output of \link{run_pmbb_phewas}}
 
 \item{output_file}{Full path to save the HTML report}
 
@@ -27,7 +27,7 @@ render_pmbb_phewas_report(
 The function renders an HTML report and returns silently
 }
 \description{
-This function renders an HTML report from pre-saved genotype mask and PheWAS output files.
+This function renders an HTML report from pre-saved genotype mask and PheWAS output files or R objects.
 }
 \examples{
 \dontrun{

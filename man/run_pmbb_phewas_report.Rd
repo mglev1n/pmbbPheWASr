@@ -59,9 +59,9 @@ For example: list(plof_0.001 = "burden", common_0.01 = "single")}
 
 \item{covariate_cols}{Vector of columns in the covariate file or dataframe that should be used as covariates in the PheWAS}
 
-\item{mask_output_path}{Path to the saved genotype output for each mask}
+\item{mask_output_path}{Path to the saved genotype output for each mask or an R list object containing the output of \link{pmbb_extract_genotype_masks}}
 
-\item{phewas_output_path}{Path to the saved PheWAS output dataframe}
+\item{phewas_output_path}{Path to the saved PheWAS output dataframe or an R dataframe object containing the output of \link{run_pmbb_phewas}}
 
 \item{report_output_path}{(Optional) File name and path were the report should be saved. If not provided the report will be saved to the current directory}
 
