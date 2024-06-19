@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-Phenome-wide association studies (PheWAS; [https://doi.org/10.1093%2Fbioinformatics%2Fbtq126](https://doi.org/10.1093%2Fbioinformatics%2Fbtq126)) are a method to systematically investigate the association between genetic variant(s) and a wide range of phenotypes. The `pmbbPheWASr` package is a collection of functions to perform PheWAS analyses using data from the Penn Medicine Biobank. The package is designed to be user-friendly and flexible, allowing users to perform PheWAS analyses with minimal effort. The function contains several convenience functions that facilitate running PheWAS using PMBB data, including extracting genotype information based on user-supplied masks, formatting phenotype/covariate data, and running PheWAS analyses using the PheWAS package ([https://github.com/PheWAS/PheWAS](https://github.com/PheWAS/PheWAS)). 
+[Phenome-wide association studies (PheWAS)](https://doi.org/10.1093%2Fbioinformatics%2Fbtq126)) are an approach to systematically investigate the association between genetic variant(s) and a wide range of phenotypes. The `pmbbPheWASr` package is a collection of functions to perform PheWAS analyses using data from the Penn Medicine Biobank. The package is designed to be user-friendly and flexible, allowing users to perform PheWAS analyses with minimal effort. The function contains several convenience functions that facilitate running PheWAS using PMBB data, including extracting genotype information based on user-supplied masks, formatting phenotype/covariate data, and running PheWAS analyses using the [`PheWAS` package](https://github.com/PheWAS/PheWAS). 
 
 ## Installation
 
