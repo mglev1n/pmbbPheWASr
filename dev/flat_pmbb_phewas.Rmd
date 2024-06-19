@@ -281,6 +281,10 @@ test_that("filter_dataframe works", {
   expect_true(tibble::is_tibble(res))
   expect_true(nrow(res) > 0)
 })
+
+test_that("filter_dataframe errors on missing columns", {
+  expect_error(filter_dataframe(dplyr::starwars, list(missing_column_name = " > 100", eye_color = " == 'blue'")))
+})
 ```
 
 
