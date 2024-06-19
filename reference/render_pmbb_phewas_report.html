@@ -18,14 +18,11 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item">
-  <a class="nav-link" href="../reference/index.html">Reference</a>
+      <ul class="navbar-nav me-auto"><li class="nav-item">
+  <a class="nav-link" href="../articles/pmbbPheWASr.html">Get started</a>
 </li>
-<li class="nav-item dropdown">
-  <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
-  <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="../articles/get-started.html">Get started</a>
-  </div>
+<li class="active nav-item">
+  <a class="nav-link" href="../reference/index.html">Reference</a>
 </li>
       </ul><form class="form-inline my-2 my-lg-0" role="search">
         <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off"></form>
@@ -55,8 +52,8 @@
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">render_pmbb_phewas_report</span><span class="op">(</span></span>
-<span>  <span class="va">mask_output_path</span>,</span>
-<span>  <span class="va">phewas_output_path</span>,</span>
+<span>  <span class="va">mask_output</span>,</span>
+<span>  <span class="va">phewas_output</span>,</span>
 <span>  <span class="va">output_file</span>,</span>
 <span>  template_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -65,11 +62,11 @@
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
-    <dl><dt>mask_output_path</dt>
+    <dl><dt>mask_output</dt>
 <dd><p>Path to the saved genotype output for each mask or an R list object containing the output of <a href="pmbb_extract_genotype_masks.html">pmbb_extract_genotype_masks</a></p></dd>
 
 
-<dt>phewas_output_path</dt>
+<dt>phewas_output</dt>
 <dd><p>Path to the saved PheWAS output dataframe or an R dataframe object containing the output of <a href="run_pmbb_phewas.html">run_pmbb_phewas</a></p></dd>
 
 
@@ -78,7 +75,7 @@
 
 
 <dt>template_path</dt>
-<dd><p>Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: <code>usethis::use_template("phecode_phewas_template.qmd", save_as = "phecode_phewas_template.qmd", package = "pmbbPheWASr")</code>, which will be saved in the current working directory.</p></dd>
+<dd><p>Optional path to a custom Quarto template file. If not provided, the default template will be used. This template should be a Quarto document with the necessary code to render the PheWAS report, and must be located in the top directory of the current project. An example template can be generated using: <code>usethis::use_template("combined_phewas_template.qmd", save_as = "combined_phewas_template.qmd", package = "pmbbPheWASr")</code>, which will be saved in the current working directory.</p></dd>
 
 
 <dt>...</dt>
