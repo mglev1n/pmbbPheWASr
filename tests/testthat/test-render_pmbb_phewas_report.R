@@ -5,8 +5,8 @@ test_that("render_pmbb_phewas_report works", {
 
   skip()
   render_pmbb_phewas_report(
-    phewas_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/tests/testthat/LDLR_phewas_results.rds",
-    mask_output_path = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/tests/testthat/LDLR_mask_results.rds",
+    phewas_output = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/tests/testthat/LDLR_phewas_results.rds",
+    mask_output = "/project/damrauer_shared/Users/mglevin/pmbbPheWASr/tests/testthat/LDLR_mask_results.rds",
     output_file = "LDLR_report.html"
   )
 })

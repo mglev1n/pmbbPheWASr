@@ -6,8 +6,8 @@
 \usage{
 run_pmbb_phewas(
   mask_genotypes_list,
-  phecode_file,
-  covariate_files,
+  phenotypes,
+  covariates,
   populations = c("ALL"),
   covariate_cols,
   covariate_population_col = NULL,
@@ -18,9 +18,9 @@ run_pmbb_phewas(
 \arguments{
 \item{mask_genotypes_list}{A named list, where each element contains a named element called \code{genotypes} which contains \code{PMBB_ID} and \code{genotype} columns.}
 
-\item{phecode_file}{Path to PMBB phenotype file or a dataframe containing phenotype data used to run PheWAS}
+\item{phenotypes}{Path to PMBB phenotype file or a dataframe containing phenotype data used to run PheWAS}
 
-\item{covariate_files}{Path to PMBB covariate file(s) or a dataframe containing covariate data used to run PheWAS. If multiple files are provided, they will be joined by \code{PMBB_ID}, and values for duplicated columns will be preserved from the from the file that is specified earlier.}
+\item{covariates}{Path to PMBB covariate file(s) or a dataframe containing covariate data used to run PheWAS. If multiple files are provided, they will be joined by \code{PMBB_ID}, and values for duplicated columns will be preserved from the from the file that is specified earlier.}
 
 \item{populations}{A character vector of populations to run PheWAS on. Default is \code{c("ALL")}}
 
@@ -61,11 +61,12 @@ ldlr_mask_res <- pmbb_extract_genotype_masks(
 # Run a PheWAS
 phewas_res <- run_pmbb_phewas(
   mask_genotypes_list = ldlr_mask_res,
-  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
-  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+  phenotypes = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+  covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
   populations = c("ALL", "EUR"),
   covariate_population_col = Class,
   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
 )
 }
 }
+\concept{{phewas}}

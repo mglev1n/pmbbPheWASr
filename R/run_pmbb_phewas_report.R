@@ -31,16 +31,16 @@
 #'   populations = c("ALL"),
 #'   covariate_population_col = "Class",
 #'   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
-#'   mask_output_path = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
-#'   phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
-#'   phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
-#'   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+#'   mask_output = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
+#'   phewas_output = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
+#'   phenotypes = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+#'   covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
 #'   bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
 #'   plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
 #'   cores = 16
 #' )
 #' }
-run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_operator, variant_id_col, effect_allele_col, plink_bin, bfile, phecode_file, covariate_files, populations, covariate_population_col, covariate_cols, mask_output_path = NULL, phewas_output_path = NULL, report_output_path = NULL, ...) {
+run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_operator, variant_id_col, effect_allele_col, plink_bin, bfile, phenotypes, covariates, populations, covariate_population_col, covariate_cols, mask_output = NULL, phewas_output = NULL, report_output_path = NULL, ...) {
   
   # Extract genotypes for a series of masks
   mask_res <- pmbb_extract_genotype_masks(
@@ -56,17 +56,17 @@ run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_
   )
   
   # Save the mask results to a file
-  if (is.null(mask_output_path)) {
-    # Use a temporary file if mask_output_path is not provided
-    mask_output_path <- tempfile(fileext = ".rds")
+  if (is.null(mask_output)) {
+    # Use a temporary file if mask_output is not provided
+    mask_output <- tempfile(fileext = ".rds")
   }
-  saveRDS(mask_res, file = mask_output_path)
+  saveRDS(mask_res, file = mask_output)
   
   # Run a PheWAS
   phewas_res <- run_pmbb_phewas(
     mask_genotypes_list = mask_res,
-    phecode_file = phecode_file,
-    covariate_files = covariate_files,
+    phenotypes = phenotypes,
+    covariates = covariates,
     populations = populations,
     covariate_population_col = {{ covariate_population_col }},
     covariate_cols = {{ covariate_cols }},
@@ -74,11 +74,11 @@ run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_
   )
   
   # Save the PheWAS results to a file
-  if (is.null(phewas_output_path)) {
-    # Use a temporary file if phewas_output_path is not provided
-    phewas_output_path <- tempfile(fileext = ".rds")
+  if (is.null(phewas_output)) {
+    # Use a temporary file if phewas_output is not provided
+    phewas_output <- tempfile(fileext = ".rds")
   }
-  saveRDS(phewas_res, file = phewas_output_path)
+  saveRDS(phewas_res, file = phewas_output)
   
   # Collapse the gene names into a single string
   gene_names_collapsed <- glue::glue_collapse(gene, sep = "-")
@@ -96,15 +96,15 @@ run_pmbb_phewas_report <- function(gene, annotation_file, gene_col, masks, mask_
   
   # Render the PheWAS report
   render_pmbb_phewas_report(
-    mask_output_path = mask_output_path,
-    phewas_output_path = phewas_output_path,
+    mask_output = mask_output,
+    phewas_output = phewas_output,
     output_file = output_file
   )
   
   # Return the paths to the saved mask, PheWAS results, and report files
   return(list(
     report_output_path = output_file,
-    mask_output_path = mask_output_path,
-    phewas_output_path = phewas_output_path
+    mask_output = mask_output,
+    phewas_output = phewas_output
   ))
 }

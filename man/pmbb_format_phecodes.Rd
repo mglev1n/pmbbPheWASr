@@ -23,3 +23,8 @@ pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenoty
 }
 
 }
+\seealso{
+Other {phenotypes}: 
+\code{\link{pmbb_format_labs}()}
+}
+\concept{{phenotypes}}

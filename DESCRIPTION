@@ -10,12 +10,16 @@ License: MIT + file LICENSE
 URL: https://github.com/mglev1n/pmbbPheWASr
 BugReports: https://github.com/mglev1n/pmbbPheWASr/issues
 Imports: 
+    arrow,
     assertr,
     cli,
     data.table,
+    dbplyr,
     dplyr,
+    duckdb,
     fs,
     glue,
+    janitor,
     magrittr,
     PheWAS,
     processx,

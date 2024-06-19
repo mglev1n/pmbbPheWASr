@@ -76,3 +76,8 @@ ldlr_mask_res <- pmbb_extract_genotype_masks(
   bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
 }
 }
+\seealso{
+Other {genotypes}: 
+\code{\link{pmbb_extract_genotypes}()}
+}
+\concept{{genotypes}}

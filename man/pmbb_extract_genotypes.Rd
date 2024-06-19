@@ -46,3 +46,8 @@ pmbb_extract_genotypes(
 )
 }
 }
+\seealso{
+Other {genotypes}: 
+\code{\link{pmbb_extract_genotype_masks}()}
+}
+\concept{{genotypes}}

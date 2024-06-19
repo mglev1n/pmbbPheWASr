@@ -19,10 +19,10 @@ flat_pmbb_phewas.Rmd:
   - tests/testthat/test-run_pmbb_phewas.R
   - tests/testthat/test-run_pmbb_phewas_report.R
   - tests/testthat/test-render_pmbb_phewas_report.R
-  vignettes: vignettes/get-started.Rmd
+  vignettes: []
   inflate:
     flat_file: dev/flat_pmbb_phewas.Rmd
-    vignette_name: Get started
+    vignette_name: .na
     open_vignette: true
     check: true
     document: true

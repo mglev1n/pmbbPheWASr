@@ -14,6 +14,7 @@
 #' 
 #' @return A long-format [tibble::tibble()] containing the extracted genotypes for each PMBB participant.
 #' 
+#' @family {genotypes}
 #' @export
 #' @examples
 #' \dontrun{
@@ -25,6 +26,7 @@
 #'   bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
 #' )
 #' }
+
 pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col, plink_bin, bfile, threads = 1, memory = 8000) {
   
     cli::cli_progress_step("Extracting genotypes from {.val {bfile}}")

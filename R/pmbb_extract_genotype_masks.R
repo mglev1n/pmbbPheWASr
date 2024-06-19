@@ -26,6 +26,8 @@
 #'          - "genotypes": A [tibble::tibble()] containing the genotype for each PMBB participant.
 #'          - "mask": A string containing the mask applied to filter the variants.
 #'          - "mask_type": A [tibble::tibble()] containing the mask type applied (eg. "burden" or "single").
+#'
+#' @family {genotypes}
 #' @export
 #' @examples
 #' \dontrun{

@@ -28,8 +28,8 @@ test_that("run_pmbb_phewas works", {
   suppressWarnings(
     phewas_res <- run_pmbb_phewas(
       mask_genotypes_list = ldlr_mask_res %>% head(2),
-      phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(100),
-      covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+      phenotypes = pmbb_phecodes %>% dplyr::select(1:5) %>% head(100),
+      covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
       populations = c("ALL", "EUR"),
       covariate_population_col = "Class",
       covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
@@ -59,8 +59,8 @@ test_that("run_pmbb_phewas works", {
       suppressWarnings(
     phewas_res <- run_pmbb_phewas(
       mask_genotypes_list = pnpla2_mask_res,
-      phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(100),
-      covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+      phenotypes = pmbb_phecodes %>% dplyr::select(1:5) %>% head(100),
+      covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
       populations = c("ALL", "EUR"),
       covariate_population_col = "Class",
       covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))

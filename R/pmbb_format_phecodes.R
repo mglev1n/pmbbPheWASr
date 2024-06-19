@@ -8,29 +8,30 @@
 #' @param covariate_cols Vector of columns in the covariate file that should be used as covariates in the PheWAS
 #' @param covariate_population_col Column containing population labels in the covariate file, required if `populations` is not `"ALL"`
 #' @param populations A character vector of populations to run PheWAS on. Default is `c("ALL")`
-#'
+
+#' @family {phenotypes}
 #' @return A formatted covariate dataframe with selected columns and unique PMBB_IDs.
 #'
-#' 
 #' @noRd
 #' @examples
 #' \dontrun{
 #' pmbb_format_covariates(
-#'   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+#'   covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
 #'   populations = c("ALL", "EUR"),
 #'   covariate_population_col = Class,
 #'   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
 #' )
 #' }
 #'
+
 pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_population_col, populations) {
   
-  # Check if covariate_files exists - this may include multiple files
-  covariate_files_exists <- purrr::map(covariate_files, file.exists) %>%
+  # Check if covariates exists - this may include multiple files
+  covariates_exists <- purrr::map(covariate_files, file.exists) %>%
     unlist()
 
   if (FALSE %in% purrr::map(covariate_files, file.exists)) {
-    missing_covariates_files <- covariate_files[!covariate_files_exists]
+    missing_covariates_files <- covariate_files[!covariates_exists]
     cli::cli_abort("{missing_covariates_files} does not exist")
   }
   
@@ -75,6 +76,85 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
 
 }
 
+#' Format labs data for PheWAS
+#' 
+#' This function will read in labs data from PMBB and format it for use in a PheWAS. By default, this function will return a data frame with summary measures (`min`, `median`, `mean`, `max`) of each lab value for each individual in the PMBB cohort. Because PMBB lab data is only roughly cleaned, the function will by default select only the most common `RESULT_NAME` for each lab test.
+ 
+#' 
+#' 
+#' @param labs_files A character vector of file paths to the labs data 
+#' @param patient_class A character vector of patient classes (location of lab testing) to include in the analysis. Default is `"Outpatient"`
+#'
+#' @return A [tibble::tibble()] containing `PMBB_ID` and summary measures of lab values for each PMBB participant
+#' @import duckdb dbplyr
+#' 
+#' @family {phenotypes}
+#' @export
+#' @examples
+#' \dontrun{
+#' pmbb_labs_df <- fs::dir_ls("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/", glob = "*labs*", recurse = TRUE) %>%
+#'       pmbb_format_labs()
+#'}
+
+pmbb_format_labs <- function(labs_files, patient_class = "Outpatient") {
+  rlang::arg_match(patient_class, c("Inpatient", "Outpatient"))
+
+  cli::cli_progress_step("Processing labs data: {.val {labs_files}}")
+
+  # TODO add fuzzy matching for lab names
+  # if(fuzzy) {
+  # lab_counts_df <- arrow::open_tsv_dataset(labs_files) %>%
+  #   dplyr::select(PMBB_ID, PATIENT_CLASS, RESULT_NAME, RESULT_VALUE_NUM) %>%
+  #   dplyr::filter(PATIENT_CLASS %in% patient_class) %>%
+  #   dplyr::mutate(file = add_filename()) %>%
+  #   # head(1000) %>%
+  #   dplyr::compute() %>%
+  #   arrow::to_duckdb() %>%
+  #   dplyr::group_by(file, RESULT_NAME) %>%
+  #   dplyr::summarize(n = n(), .groups = "drop") %>%
+  #   dplyr::group_by(file) %>%
+  #   dplyr::arrange(desc(n), .by_group = TRUE) %>%
+  #   dplyr::ungroup() %>%
+  #   dplyr::filter(n > min_records) %>%
+  #   dplyr::collect()
+  #
+  # lab_counts_df <- lab_counts_df %>%
+  #   dplyr::group_by(file) %>%
+  #   dplyr::slice_max(n) %>%
+  #   dplyr::ungroup() %>%
+  #   dplyr::mutate(lead_result_name = stringr::str_to_lower(RESULT_NAME)) %>%
+  #   dplyr::select(lead_result_name) %>%
+  #   fuzzyjoin::stringdist_left_join(lab_counts_df %>% dplyr::mutate(result = stringr::str_to_lower(RESULT_NAME)), by = c("lead_result_name" = "result"), method = "jw", max_dist = 0.4)
+  #
+  # return(lab_counts_df)
+  #
+  # }
+
+  arrow::open_tsv_dataset(labs_files) %>%
+    dplyr::select(PMBB_ID, PATIENT_CLASS, RESULT_NAME, RESULT_VALUE_NUM) %>%
+    dplyr::filter(PATIENT_CLASS %in% patient_class) %>%
+    dplyr::mutate(file = add_filename()) %>%
+    # head(1000) %>%
+    dplyr::compute() %>%
+    arrow::to_duckdb() %>%
+    dplyr::add_count(RESULT_NAME) %>%
+    dplyr::group_by(file) %>%
+    dplyr::slice_max(n) %>%
+    dplyr::collect() %>%
+    dplyr::group_by(PMBB_ID, RESULT_NAME) %>%
+    dplyr::summarise(across(RESULT_VALUE_NUM, list(min = min, median = median, mean = mean, max = max), .names = "{.fn}"), .groups = "drop") %>%
+    # dplyr::ungroup() %>%
+    tidytable::pivot_wider(
+      id_cols = PMBB_ID,
+      names_from = RESULT_NAME,
+      values_from = c(min, median, mean, max),
+      names_glue = "{RESULT_NAME}_{.value}"
+    ) %>%
+    dplyr::ungroup() %>%
+    dplyr::rename_with(janitor::make_clean_names, .cols = -PMBB_ID) %>%
+    tibble::as_tibble()
+}
+
 #' Format PMBB phecode data
 #' 
 #' Given a dataframe containing PMBB phecodes, apply a case treshold for categorizing individuals as cases or controls
@@ -83,7 +163,8 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
 #' @param phecode_case_threshold Number of cases required to classify an individual as a case
 #'
 #' @return A [tibble::tibble()] containing `PMBB_ID` and phecodes as columns, with TRUE/FALSE values for each phecode column
-#' 
+
+#' @family {phenotypes}
 #' @export
 #' @examples
 #' \dontrun{

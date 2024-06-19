@@ -1,3 +1,30 @@
 url: https://mglev1n.github.io/pmbbPheWASr/
 template:
   bootstrap: 5
+reference:
+
+- title: Genotypes
+  desc: Functions to extract and format PMBB genotype data for PheWAS
+  contents:
+  - matches("*genotype*")
+  - matches("*variant*")
+
+- title: Phenotypes
+  desc: Functions to extract and format PMBB phenotype data for PheWAS
+  contents:
+  - starts_with("pmbb_format*")
+
+- title: PheWAS
+  desc: Run a PheWAS on PMBB genotype and phenotype data
+  contents:
+  - matches("run_pmbb_phewas")
+
+- title: Reporting
+  desc: Render the results of a PheWAS
+  contents:
+  - matches("*render*")
+
+- title: Miscellaneous
+  desc: Miscellaneous functions useful for preparing and running PheWAS
+  contents:
+  - matches("*awk*")

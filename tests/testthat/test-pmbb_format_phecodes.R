@@ -2,16 +2,16 @@
 
 test_that("pmbb_format_phecodes works", {
   expect_true(inherits(pmbb_format_phecodes, "function"))
-  phecode_file <- "phecodes.tsv"
-  if (!file.exists(phecode_file)) {
+  phenotypes <- "phecodes.tsv"
+  if (!file.exists(phenotypes)) {
     # The path to use during dev in the flat file
-    phecode_file <- file.path("tests", "testthat", phecode_file)
-    if (!file.exists(phecode_file)) {
-      stop(phecode_file, " does not exist")
+    phenotypes <- file.path("tests", "testthat", phenotypes)
+    if (!file.exists(phenotypes)) {
+      stop(phenotypes, " does not exist")
     }
   }
 
-  res <- pmbb_format_phecodes(phecode_file)
+  res <- pmbb_format_phecodes(phenotypes)
   expect_true(tibble::is_tibble(res))
 })
 
@@ -28,5 +28,18 @@ test_that("pmbb_format_covariates works", {
 )
   
   expect_true(inherits(pmbb_covariates_res, "data.frame"))
+  
+})
+
+test_that("pmbb_format_labs works", {
+  
+  expect_true(inherits(pmbb_format_labs, "function"))
+  
+  testthat::skip_if(testthat:::on_ci() | testthat:::on_cran())
+  pmbb_labs_df <- fs::dir_ls("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/", glob = "*labs*", recurse = TRUE) %>%
+      head(1) %>%
+      pmbb_format_labs()
+  
+  expect_true(nrow(pmbb_labs_df) > 0)
   
 })

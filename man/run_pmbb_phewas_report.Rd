@@ -14,13 +14,13 @@ run_pmbb_phewas_report(
   effect_allele_col,
   plink_bin,
   bfile,
-  phecode_file,
-  covariate_files,
+  phenotypes,
+  covariates,
   populations,
   covariate_population_col,
   covariate_cols,
-  mask_output_path = NULL,
-  phewas_output_path = NULL,
+  mask_output = NULL,
+  phewas_output = NULL,
   report_output_path = NULL,
   ...
 )
@@ -49,9 +49,9 @@ For example: list(plof_0.001 = "burden", common_0.01 = "single")}
 
 \item{bfile}{The prefix of the plink binary files (without the file extension).}
 
-\item{phecode_file}{Path to PMBB phenotype file or a dataframe containing phenotype data used to run PheWAS}
+\item{phenotypes}{Path to PMBB phenotype file or a dataframe containing phenotype data used to run PheWAS}
 
-\item{covariate_files}{Path to PMBB covariate file(s) or a dataframe containing covariate data used to run PheWAS. If multiple files are provided, they will be joined by \code{PMBB_ID}, and values for duplicated columns will be preserved from the from the file that is specified earlier.}
+\item{covariates}{Path to PMBB covariate file(s) or a dataframe containing covariate data used to run PheWAS. If multiple files are provided, they will be joined by \code{PMBB_ID}, and values for duplicated columns will be preserved from the from the file that is specified earlier.}
 
 \item{populations}{A character vector of populations to run PheWAS on. Default is \code{c("ALL")}}
 
@@ -59,9 +59,9 @@ For example: list(plof_0.001 = "burden", common_0.01 = "single")}
 
 \item{covariate_cols}{Vector of columns in the covariate file or dataframe that should be used as covariates in the PheWAS}
 
-\item{mask_output_path}{Path to the saved genotype output for each mask or an R list object containing the output of \link{pmbb_extract_genotype_masks}}
+\item{mask_output}{Path to the saved genotype output for each mask or an R list object containing the output of \link{pmbb_extract_genotype_masks}}
 
-\item{phewas_output_path}{Path to the saved PheWAS output dataframe or an R dataframe object containing the output of \link{run_pmbb_phewas}}
+\item{phewas_output}{Path to the saved PheWAS output dataframe or an R dataframe object containing the output of \link{run_pmbb_phewas}}
 
 \item{report_output_path}{(Optional) File name and path were the report should be saved. If not provided the report will be saved to the current directory}
 
@@ -92,10 +92,10 @@ run_pmbb_phewas_report(
   populations = c("ALL"),
   covariate_population_col = "Class",
   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
-  mask_output_path = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
-  phewas_output_path = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
-  phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
-  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+  mask_output = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
+  phewas_output = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
+  phenotypes = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
+  covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
   bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
   plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
   cores = 16
