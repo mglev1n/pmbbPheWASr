@@ -71,8 +71,6 @@ apply_variant_masks <- function(annotation_df, masks) {
 #'
 #' @return The filtered [tibble::tibble()] based on the provided filter criteria.
 #'
-#' @import dplyr
-#' @import rlang
 #' @noRd
 #' @examples
 #' \dontrun{
@@ -106,7 +104,7 @@ filter_dataframe <- function(df, filter_list) {
 
     # Apply the filter criteria to the specified column using {{}}
     df <- df %>%
-      filter(!!parse_expr(paste0({{ col_filter }}, filter_criteria)))
+      dplyr::filter(!!rlang::parse_expr(paste0({{ col_filter }}, filter_criteria)))
   }
 
   return(df)

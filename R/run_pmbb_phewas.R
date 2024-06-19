@@ -75,11 +75,14 @@ run_pmbb_phewas <- function(mask_genotypes_list, phenotypes, covariates, populat
 
     allele_counts <- genotype_masks %>%
       purrr::pluck("genotypes") %>%
-      count(genotype)
+      dplyr::count(genotype)
 
     additive <- dplyr::if_else(genotype_masks %>% purrr::pluck("mask_type") == "single", TRUE, FALSE)
-
-    phewas_res <- PheWAS::phewas(
+    
+    # Run PheWAS, but return NA if there is an error - this will allow PheWAS for other masks/populations to run
+    phewas_possibly <- purrr::possibly(PheWAS::phewas, otherwise = NA)
+    
+    phewas_res <- phewas_possibly(
       genotypes = genotype_masks %>% purrr::pluck("genotypes"),
       phenotypes = phecode_df,
       covariates = covariate_df,
