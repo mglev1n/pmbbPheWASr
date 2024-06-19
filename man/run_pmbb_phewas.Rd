@@ -40,32 +40,14 @@ This function runs a PheWAS on PMBB data, using genotype information and paths t
 }
 \examples{
 \dontrun{
-# Extract genotypes for a series of masks
-ldlr_mask_res <- pmbb_extract_genotype_masks(
-  gene = "LDLR",
-  annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
-  gene_col = "Gene.refGene",
-  masks = list(
-    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
-    common = list(gnomAD_exome_ALL = "> 0.01")
-  ),
-  mask_operator = list(
-    plof_0.001 = "burden",
-    common = "single"
-  ),
-  variant_id_col = ID,
-  effect_allele_col = Alt,
-  plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
-
 # Run a PheWAS
-phewas_res <- run_pmbb_phewas(
-  mask_genotypes_list = ldlr_mask_res,
-  phenotypes = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
-  covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
-  populations = c("ALL", "EUR"),
-  covariate_population_col = Class,
-  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
+cftr_phewas_res <- pmbbPheWASr::run_pmbb_phewas(
+  mask_genotypes_list = cftr_mask_res,
+  populations = c("ALL", "EUR", "AFR"),
+  covariate_population_col = "Class",
+  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, starts_with("Genotype_PC")),
+  phenotypes = left_join(pmbb_phecodes_df, pmbb_labs_df),
+  covariates = pmbb_covariates_df
 )
 }
 }

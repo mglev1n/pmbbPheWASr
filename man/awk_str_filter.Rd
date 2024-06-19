@@ -21,9 +21,10 @@ This function wraps the system command \code{awk} to efficiently filter rows fro
 }
 \examples{
 \dontrun{
-ldlr_variants <- awk_str_filter(
+cftr_variants <- awk_str_filter(
   filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
   filter_col = "Gene.refGene",
-  filter_str = c("LDLR"))
+  filter_str = c("CFTR")
+)
 }
 }

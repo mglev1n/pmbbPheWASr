@@ -20,7 +20,7 @@ This function will read in labs data from PMBB and format it for use in a PheWAS
 \examples{
 \dontrun{
 pmbb_labs_df <- fs::dir_ls("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/", glob = "*labs*", recurse = TRUE) \%>\%
-      pmbb_format_labs()
+  pmbb_format_labs()
 }
 }
 \seealso{

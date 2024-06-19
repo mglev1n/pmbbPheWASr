@@ -2,7 +2,7 @@
 % Please edit documentation in R/render_pmbb_phewas_report.R
 \name{render_pmbb_phewas_report}
 \alias{render_pmbb_phewas_report}
-\title{Render PheWAS Report}
+\title{Render a PheWAS report from existing genotype mask and PheWAS output}
 \usage{
 render_pmbb_phewas_report(
   mask_output,
@@ -31,6 +31,10 @@ This function renders an HTML report from pre-saved genotype mask and PheWAS out
 }
 \examples{
 \dontrun{
-render_pmbb_phewas_report()
+render_pmbb_phewas_report(
+  phewas_output = cftr_phewas_res,
+  mask_output = cftr_mask_res,
+  output_file = "CFTR_pheWAS_report.html"
+)
 }
 }

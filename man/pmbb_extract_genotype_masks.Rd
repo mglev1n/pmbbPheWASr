@@ -58,22 +58,23 @@ This function extracts genotypes for a subset of participants based on a set of 
 }
 \examples{
 \dontrun{
-ldlr_mask_res <- pmbb_extract_genotype_masks(
-  gene = "LDLR",
+cftr_mask_res <- pmbb_extract_genotype_masks(
+  gene = "CFTR",
   annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
   gene_col = "Gene.refGene",
   masks = list(
-    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
-    rare_0.000001 = list(gnomAD_exome_ALL = "< 0.000001")
+    plof_lt_0.001 = list(ExonicFunc.ensGene = "\%in\% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.001"),
+    p_lp_het_gt_10 = list(CLNSIG = "\%in\% c('Pathogenic', 'Pathogenic/Likely_pathogenic')", HET_REF_ALT_CTS = "> 10")
   ),
   mask_operator = list(
-    plof_0.001 = "burden",
-    rare_0.000001 = "single"
+    plof_lt_0.001 = "burden",
+    p_lp_het_gt_10 = "single"
   ),
   variant_id_col = ID,
   effect_allele_col = Alt,
   plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
-  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL")
+  bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+)
 }
 }
 \seealso{

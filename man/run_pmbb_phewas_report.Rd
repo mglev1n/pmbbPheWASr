@@ -2,7 +2,7 @@
 % Please edit documentation in R/run_pmbb_phewas_report.R
 \name{run_pmbb_phewas_report}
 \alias{run_pmbb_phewas_report}
-\title{Run a PheWAS and generate a report}
+\title{Run a PheWAS and generate a report in a single step}
 \usage{
 run_pmbb_phewas_report(
   gene,
@@ -76,29 +76,29 @@ This function is a wrapper around the \code{run_pmbb_phewas} function that addit
 \examples{
 \dontrun{
 run_pmbb_phewas_report(
-  gene = c("LDLR"),
+  gene = "CFTR",
   annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
   gene_col = "Gene.refGene",
   masks = list(
-    plof_0.01 = list(ExonicFunc.ensGene = "\%in\% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
-    missense_0.01 = list(ExonicFunc.ensGene = "\%in\% c('nonsynonymous SNV')", gnomAD_exome_ALL = "< 0.01")
+    plof_lt_0.001 = list(ExonicFunc.ensGene = "\%in\% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.001"),
+    p_lp_het_gt_10 = list(CLNSIG = "\%in\% c('Pathogenic', 'Pathogenic/Likely_pathogenic')", HET_REF_ALT_CTS = "> 10")
   ),
   mask_operator = list(
-    plof_0.01 = "burden",
-    missense_0.01 = "burden"
+    plof_lt_0.001 = "burden",
+    p_lp_het_gt_10 = "single"
   ),
   variant_id_col = ID,
   effect_allele_col = Alt,
-  populations = c("ALL"),
   covariate_population_col = "Class",
   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC")),
-  mask_output = "LDLR_mask_results.rds",  # Optional: Specify the output path for the mask results file
-  phewas_output = "LDLR_phewas_results.rds",  # Optional: Specify the output path for the PheWAS results file,
+  mask_output = "cftr_mask_results.rds", # Optional: Specify the output path for the mask results file
+  phewas_output = "cftr_phewas_results.rds", # Optional: Specify the output path for the PheWAS results file,
   phenotypes = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt",
   covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
   bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
   plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
   cores = 16
 )
+
 }
 }

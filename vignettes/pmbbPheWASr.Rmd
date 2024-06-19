@@ -143,3 +143,5 @@ render_pmbb_phewas_report(
   output_file = "CFTR_pheWAS_report.html"
 )
 ```
+
+The report will use the internal template by default, but you can also specify a template using the `template_path` argument. You can generate a copy of the default template using `usethis::use_template("combined_phewas_template.qmd", save_as = "combined_phewas_template.qmd", package = "pmbbPheWASr")`, which will be saved in the current working directory. You can then edit this template as needed and specify it in the `template_path` argument.

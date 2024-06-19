@@ -5,17 +5,17 @@ test_that("run_pmbb_phewas works", {
 
   testthat::skip_if(testthat:::on_ci() | testthat:::on_cran())
 
-  ldlr_mask_res <- pmbb_extract_genotype_masks(
-    gene = "LDLR",
+  cftr_mask_res <- pmbb_extract_genotype_masks(
+    gene = "CFTR",
     annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
     gene_col = "Gene.refGene",
     masks = list(
-      plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
-      rare_0.000001 = list(gnomAD_exome_ALL = "< 0.000001")
+      plof_lt_0.001 = list(ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.001"),
+      p_lp_het_gt_10 = list(CLNSIG = "%in% c('Pathogenic', 'Pathogenic/Likely_pathogenic')", HET_REF_ALT_CTS = "> 10")
     ),
     mask_operator = list(
-      plof_0.001 = "burden",
-      rare_0.000001 = "single"
+      plof_lt_0.001 = "burden",
+      p_lp_het_gt_10 = "single"
     ),
     variant_id_col = ID,
     effect_allele_col = Alt,
@@ -24,10 +24,10 @@ test_that("run_pmbb_phewas works", {
   )
 
   pmbb_phecodes <- pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt")
-  
+
   suppressWarnings(
     phewas_res <- run_pmbb_phewas(
-      mask_genotypes_list = ldlr_mask_res %>% head(2),
+      mask_genotypes_list = cftr_mask_res %>% head(2),
       phenotypes = pmbb_phecodes %>% dplyr::select(1:5) %>% head(100),
       covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
       populations = c("ALL", "EUR"),
@@ -37,8 +37,8 @@ test_that("run_pmbb_phewas works", {
   )
 
   expect_true(inherits(phewas_res, "data.frame"))
-  
-    pnpla2_mask_res <- pmbb_extract_genotype_masks(
+
+  pnpla2_mask_res <- pmbb_extract_genotype_masks(
     gene = "PNPLA2",
     annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
     gene_col = "Gene.refGene",
@@ -55,8 +55,8 @@ test_that("run_pmbb_phewas works", {
     plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
     bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
   )
-  
-      suppressWarnings(
+
+  suppressWarnings(
     phewas_res <- run_pmbb_phewas(
       mask_genotypes_list = pnpla2_mask_res,
       phenotypes = pmbb_phecodes %>% dplyr::select(1:5) %>% head(100),
@@ -68,5 +68,4 @@ test_that("run_pmbb_phewas works", {
   )
 
   expect_true(inherits(phewas_res, "data.frame"))
-    
 })

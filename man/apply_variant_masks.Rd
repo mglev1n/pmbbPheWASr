@@ -24,18 +24,18 @@ This function applies variant mask criteria to a data frame containing variant a
 \dontrun{
 
 # Extract variants in a gene
-ldlr_variants <- awk_str_filter(
+cftr_variants <- awk_str_filter(
   filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
   filter_col = "Gene.refGene",
-  filter_str = c("LDLR"))
+  filter_str = c("CFTR")
+)
 
 # Apply the specified masks to the set of variants
 apply_variant_masks(
-  ldlr_variants,
+  cftr_variants,
   masks = list(
-    plof_0.001 = list(ExonicFunc.ensGene = "== 'stopgain'", gnomAD_exome_ALL = "< 0.001"),
-    common_0.01 = list(gnomAD_exome_ALL = "> 0.01"),
-    exonic_0.001 = list(Func.refGene = "== 'exonic'", gnomAD_exome_ALL = "< 0.001")
+    plof_lt_0.001 = list(ExonicFunc.ensGene = "\%in\% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.001"),
+    p_lp_het_gt_10 = list(CLNSIG = "\%in\% c('Pathogenic', 'Pathogenic/Likely_pathogenic')", HET_REF_ALT_CTS = "> 10")
   )
 )
 }

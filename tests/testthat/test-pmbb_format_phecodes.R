@@ -16,30 +16,27 @@ test_that("pmbb_format_phecodes works", {
 })
 
 test_that("pmbb_format_covariates works", {
-  expect_true(inherits(pmbb_format_covariates, "function")) 
-  
+  expect_true(inherits(pmbb_format_covariates, "function"))
+
   testthat::skip_if(testthat:::on_ci() | testthat:::on_cran())
-  
+
   pmbb_covariates_res <- pmbb_format_covariates(
-  covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
-  populations = c("ALL", "EUR"),
-  covariate_population_col = Class,
-  covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
-)
-  
+    covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+    populations = c("ALL", "EUR"),
+    covariate_population_col = Class,
+    covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
+  )
+
   expect_true(inherits(pmbb_covariates_res, "data.frame"))
-  
 })
 
 test_that("pmbb_format_labs works", {
-  
   expect_true(inherits(pmbb_format_labs, "function"))
-  
+
   testthat::skip_if(testthat:::on_ci() | testthat:::on_cran())
   pmbb_labs_df <- fs::dir_ls("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/", glob = "*labs*", recurse = TRUE) %>%
-      head(1) %>%
-      pmbb_format_labs()
-  
+    head(1) %>%
+    pmbb_format_labs()
+
   expect_true(nrow(pmbb_labs_df) > 0)
-  
 })

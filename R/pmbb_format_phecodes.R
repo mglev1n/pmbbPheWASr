@@ -15,17 +15,15 @@
 #' @noRd
 #' @examples
 #' \dontrun{
-#' pmbb_format_covariates(
-#'   covariates = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+#' pmbb_covariates_df <- pmbbPheWASr:::pmbb_format_covariates(
+#'   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
 #'   populations = c("ALL", "EUR"),
 #'   covariate_population_col = Class,
-#'   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
+#'   covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, starts_with("Genotype_PC"))
 #' )
 #' }
-#'
 
 pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_population_col, populations) {
-  
   # Check if covariates exists - this may include multiple files
   covariates_exists <- purrr::map(covariate_files, file.exists) %>%
     unlist()
@@ -34,7 +32,7 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
     missing_covariates_files <- covariate_files[!covariates_exists]
     cli::cli_abort("{missing_covariates_files} does not exist")
   }
-  
+
   # Check if populations is a character vector
   if (!is.character(populations)) {
     cli::cli_abort("{.arg populations} must be a character vector")
@@ -42,8 +40,8 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
 
   # Check if populations contains values other than "ALL"
   populations <- unique(populations)
-  if (length(sum(stringr::str_detect(populations, "ALL")))/length(populations) != 1) {
-    if(rlang::quo_is_null(rlang::enquo(covariate_population_col))) {
+  if (length(sum(stringr::str_detect(populations, "ALL"))) / length(populations) != 1) {
+    if (rlang::quo_is_null(rlang::enquo(covariate_population_col))) {
       cli::cli_abort("{.arg covariate_population_col} must be provided if {.arg populations} contains values other than {.val ALL}")
     }
   }
@@ -56,14 +54,13 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
     unique()
 
   if (!rlang::quo_is_null(rlang::enquo(covariate_population_col))) {
-
     # TODO need better checking that the covariate_population_col is in the covariate_df
 
     covariate_populations <- unique(covariate_df %>% dplyr::pull({{ covariate_population_col }}))
     missing_populations <- setdiff(populations, covariate_populations)
     missing_populations <- purrr::discard(missing_populations, function(x) x == "ALL")
 
-    if(length(missing_populations > 0)) {
+    if (length(missing_populations > 0)) {
       cli::cli_abort("Population(s) {.val {missing_populations}} not found in covariate file")
     }
 
@@ -73,28 +70,27 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
   covariate_df %>%
     dplyr::select(PMBB_ID, {{ covariate_cols }}, !!rlang::ensym(covariate_population_col)) %>%
     assertr::assert(assertr::is_uniq, PMBB_ID)
-
 }
 
 #' Format labs data for PheWAS
-#' 
+#'
 #' This function will read in labs data from PMBB and format it for use in a PheWAS. By default, this function will return a data frame with summary measures (`min`, `median`, `mean`, `max`) of each lab value for each individual in the PMBB cohort. Because PMBB lab data is only roughly cleaned, the function will by default select only the most common `RESULT_NAME` for each lab test.
- 
-#' 
-#' 
-#' @param labs_files A character vector of file paths to the labs data 
+
+#'
+#'
+#' @param labs_files A character vector of file paths to the labs data
 #' @param patient_class A character vector of patient classes (location of lab testing) to include in the analysis. Default is `"Outpatient"`
 #'
 #' @return A [tibble::tibble()] containing `PMBB_ID` and summary measures of lab values for each PMBB participant
 #' @import duckdb dbplyr
-#' 
+#'
 #' @family {phenotypes}
 #' @export
 #' @examples
 #' \dontrun{
 #' pmbb_labs_df <- fs::dir_ls("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/", glob = "*labs*", recurse = TRUE) %>%
-#'       pmbb_format_labs()
-#'}
+#'   pmbb_format_labs()
+#' }
 
 pmbb_format_labs <- function(labs_files, patient_class = "Outpatient") {
   rlang::arg_match(patient_class, c("Inpatient", "Outpatient"))
@@ -156,9 +152,9 @@ pmbb_format_labs <- function(labs_files, patient_class = "Outpatient") {
 }
 
 #' Format PMBB phecode data
-#' 
+#'
 #' Given a dataframe containing PMBB phecodes, apply a case treshold for categorizing individuals as cases or controls
-#' 
+#'
 #' @param phecode_file Path to PMBB phecode file used to run PheWAS
 #' @param phecode_case_threshold Number of cases required to classify an individual as a case
 #'
@@ -168,13 +164,12 @@ pmbb_format_labs <- function(labs_files, patient_class = "Outpatient") {
 #' @export
 #' @examples
 #' \dontrun{
-#' pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt")
+#' pmbb_phecodes_df <- pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt", phecode_case_threshold = 2)
 #' }
-#'
 
-pmbb_format_phecodes <- function(phecode_file, phecode_case_threshold = 2){
-    cli::cli_progress_step("Formatting {phecode_file}")
-  
+pmbb_format_phecodes <- function(phecode_file, phecode_case_threshold = 2) {
+  cli::cli_progress_step("Formatting {phecode_file}")
+
   vroom::vroom(phecode_file, show_col_types = FALSE) %>%
     tidytable::pivot_longer(cols = c(-PMBB_ID)) %>%
     tibble::as_tibble() %>%

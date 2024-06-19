@@ -19,9 +19,8 @@ Given a dataframe containing PMBB phecodes, apply a case treshold for categorizi
 }
 \examples{
 \dontrun{
-pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt")
+pmbb_phecodes_df <- pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt", phecode_case_threshold = 2)
 }
-
 }
 \seealso{
 Other {phenotypes}: 

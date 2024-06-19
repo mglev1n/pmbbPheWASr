@@ -2,9 +2,9 @@
 
 test_that("pmbb_extract_genotypes works", {
   expect_true(inherits(pmbb_extract_genotypes, "function"))
-  
+
   testthat::skip_if(testthat:::on_ci() | testthat:::on_cran())
-  
+
   ldlr_file <- "ldlr_df.tsv"
   if (!file.exists(ldlr_file)) {
     # The path to use during dev in the flat file

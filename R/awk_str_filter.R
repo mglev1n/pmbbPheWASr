@@ -16,58 +16,58 @@
 #'
 #' @examples
 #' \dontrun{
-#' ldlr_variants <- awk_str_filter(
+#' cftr_variants <- awk_str_filter(
 #'   filename = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
 #'   filter_col = "Gene.refGene",
-#'   filter_str = c("LDLR"))
+#'   filter_str = c("CFTR")
+#' )
 #' }
 awk_str_filter <- function(filename, filter_col, filter_str) {
-    # Check if the file exists
-    if (!file.exists(filename)) {
-        cli::cli_abort("File does not exist: {filename}")
-    }
-    
-    cli::cli_progress_step("Extracting '{filter_str}' from column '{filter_col}' in {.val {filename}}")
-  
-    # Determine the column index based on the filter_col
-    header <- readLines(filename, n = 1)
-    col_names <- strsplit(header, "\t")[[1]]
-    col_index <- which(col_names == filter_col)
+  # Check if the file exists
+  if (!file.exists(filename)) {
+    cli::cli_abort("File does not exist: {filename}")
+  }
 
-    if (length(col_index) == 0) {
-        cli::cli_abort("Column not found: {filter_col}")
-    }
+  cli::cli_progress_step("Extracting '{filter_str}' from column '{filter_col}' in {.val {filename}}")
 
-    # Construct the awk command
-    # awk_cmd <- paste0("awk -F'\t' '", paste0("$", col_index, " ~ /", paste(filter_str, collapse = "|"), "/"), "' ", shQuote(filename))
-    
-    awk_cmd <- c(paste0("NR == 1 || ", paste0("($", col_index, " == \"", filter_str, "\")", collapse = " || ")), filename)
-    
-    # Execute the awk command using processx
-    result <- processx::run(
-        command = "awk",
-        args = awk_cmd,
-        error_on_status = TRUE
-    )
+  # Determine the column index based on the filter_col
+  header <- readLines(filename, n = 1)
+  col_names <- strsplit(header, "\t")[[1]]
+  col_index <- which(col_names == filter_col)
 
-    # Check if the command executed successfully
-    if (result$status != 0) {
-        cli::cli_abort("Error executing awk command: {result$stderr}")
-    }
+  if (length(col_index) == 0) {
+    cli::cli_abort("Column not found: {filter_col}")
+  }
 
-    # Format the filtered output using data.table::fread()
-    filtered_dt <- data.table::fread(
-        text = result$stdout,
-        sep = "\t",
-        header = TRUE,
-        stringsAsFactors = FALSE,
-        quote = "", 
-        na.strings = "."
-    )
+  # Construct the awk command
+  # awk_cmd <- paste0("awk -F'\t' '", paste0("$", col_index, " ~ /", paste(filter_str, collapse = "|"), "/"), "' ", shQuote(filename))
 
-    # Convert the data.table to a tibble
-    filtered_tibble <- tibble::as_tibble(filtered_dt)
+  awk_cmd <- c(paste0("NR == 1 || ", paste0("($", col_index, " == \"", filter_str, "\")", collapse = " || ")), filename)
 
-    return(filtered_tibble)
+  # Execute the awk command using processx
+  result <- processx::run(
+    command = "awk",
+    args = awk_cmd,
+    error_on_status = TRUE
+  )
+
+  # Check if the command executed successfully
+  if (result$status != 0) {
+    cli::cli_abort("Error executing awk command: {result$stderr}")
+  }
+
+  # Format the filtered output using data.table::fread()
+  filtered_dt <- data.table::fread(
+    text = result$stdout,
+    sep = "\t",
+    header = TRUE,
+    stringsAsFactors = FALSE,
+    quote = "",
+    na.strings = "."
+  )
+
+  # Convert the data.table to a tibble
+  filtered_tibble <- tibble::as_tibble(filtered_dt)
+
+  return(filtered_tibble)
 }
-
