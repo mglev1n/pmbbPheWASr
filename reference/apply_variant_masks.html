@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">pmbbPheWASr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,18 +79,18 @@ For example: list(plof_0.001 = list(ExonicFunc.ensGene = "= stopgain", gnomAD_ex
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Extract variants in a gene</span></span></span>
-<span class="r-in"><span><span class="va">ldlr_variants</span> <span class="op">&lt;-</span> <span class="fu"><a href="awk_str_filter.html">awk_str_filter</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span><span class="va">cftr_variants</span> <span class="op">&lt;-</span> <span class="fu"><a href="awk_str_filter.html">awk_str_filter</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  filename <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt"</span>,</span></span>
 <span class="r-in"><span>  filter_col <span class="op">=</span> <span class="st">"Gene.refGene"</span>,</span></span>
-<span class="r-in"><span>  filter_str <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"LDLR"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  filter_str <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"CFTR"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Apply the specified masks to the set of variants</span></span></span>
 <span class="r-in"><span><span class="fu">apply_variant_masks</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="va">ldlr_variants</span>,</span></span>
+<span class="r-in"><span>  <span class="va">cftr_variants</span>,</span></span>
 <span class="r-in"><span>  masks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    plof_0.001 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ExonicFunc.ensGene <span class="op">=</span> <span class="st">"== 'stopgain'"</span>, gnomAD_exome_ALL <span class="op">=</span> <span class="st">"&lt; 0.001"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    common_0.01 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>gnomAD_exome_ALL <span class="op">=</span> <span class="st">"&gt; 0.01"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    exonic_0.001 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>Func.refGene <span class="op">=</span> <span class="st">"== 'exonic'"</span>, gnomAD_exome_ALL <span class="op">=</span> <span class="st">"&lt; 0.001"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    plof_lt_0.001 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ExonicFunc.ensGene <span class="op">=</span> <span class="st">"%in% c('stopgain', 'stoploss', 'frameshift substitution')"</span>, gnomAD_exome_ALL <span class="op">=</span> <span class="st">"&lt; 0.001"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    p_lp_het_gt_10 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>CLNSIG <span class="op">=</span> <span class="st">"%in% c('Pathogenic', 'Pathogenic/Likely_pathogenic')"</span>, HET_REF_ALT_CTS <span class="op">=</span> <span class="st">"&gt; 10"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>

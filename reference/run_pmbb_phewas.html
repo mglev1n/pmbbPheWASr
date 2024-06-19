@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">pmbbPheWASr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -107,32 +107,14 @@
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span><span class="co"># Extract genotypes for a series of masks</span></span></span>
-<span class="r-in"><span><span class="va">ldlr_mask_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="pmbb_extract_genotype_masks.html">pmbb_extract_genotype_masks</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  gene <span class="op">=</span> <span class="st">"LDLR"</span>,</span></span>
-<span class="r-in"><span>  annotation_file <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt"</span>,</span></span>
-<span class="r-in"><span>  gene_col <span class="op">=</span> <span class="st">"Gene.refGene"</span>,</span></span>
-<span class="r-in"><span>  masks <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    plof_0.001 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>ExonicFunc.ensGene <span class="op">=</span> <span class="st">"== 'stopgain'"</span>, gnomAD_exome_ALL <span class="op">=</span> <span class="st">"&lt; 0.001"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    common <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>gnomAD_exome_ALL <span class="op">=</span> <span class="st">"&gt; 0.01"</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span>,</span></span>
-<span class="r-in"><span>  mask_operator <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    plof_0.001 <span class="op">=</span> <span class="st">"burden"</span>,</span></span>
-<span class="r-in"><span>    common <span class="op">=</span> <span class="st">"single"</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span>,</span></span>
-<span class="r-in"><span>  variant_id_col <span class="op">=</span> <span class="va">ID</span>,</span></span>
-<span class="r-in"><span>  effect_allele_col <span class="op">=</span> <span class="va">Alt</span>,</span></span>
-<span class="r-in"><span>  plink_bin <span class="op">=</span> <span class="st">"/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2"</span>,</span></span>
-<span class="r-in"><span>  bfile <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Run a PheWAS</span></span></span>
-<span class="r-in"><span><span class="va">phewas_res</span> <span class="op">&lt;-</span> <span class="fu">run_pmbb_phewas</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  mask_genotypes_list <span class="op">=</span> <span class="va">ldlr_mask_res</span>,</span></span>
-<span class="r-in"><span>  phenotypes <span class="op">=</span> <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt"</span>,</span></span>
-<span class="r-in"><span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt"</span>, <span class="st">"/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  populations <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ALL"</span>, <span class="st">"EUR"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  covariate_population_col <span class="op">=</span> <span class="va">Class</span>,</span></span>
-<span class="r-in"><span>  covariate_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Age <span class="op">=</span> <span class="va">Age_at_Enrollment</span>, Sex <span class="op">=</span> <span class="va">Gen_Sex</span>, <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/starts_with.html" class="external-link">starts_with</a></span><span class="op">(</span><span class="st">"Genotype_PC"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">cftr_phewas_res</span> <span class="op">&lt;-</span> <span class="fu">pmbbPheWASr</span><span class="fu">::</span><span class="fu">run_pmbb_phewas</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  mask_genotypes_list <span class="op">=</span> <span class="va">cftr_mask_res</span>,</span></span>
+<span class="r-in"><span>  populations <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ALL"</span>, <span class="st">"EUR"</span>, <span class="st">"AFR"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  covariate_population_col <span class="op">=</span> <span class="st">"Class"</span>,</span></span>
+<span class="r-in"><span>  covariate_cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Age <span class="op">=</span> <span class="va">Age_at_Enrollment</span>, Sex <span class="op">=</span> <span class="va">Gen_Sex</span>, <span class="fu">starts_with</span><span class="op">(</span><span class="st">"Genotype_PC"</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  phenotypes <span class="op">=</span> <span class="fu">left_join</span><span class="op">(</span><span class="va">pmbb_phecodes_df</span>, <span class="va">pmbb_labs_df</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  covariates <span class="op">=</span> <span class="va">pmbb_covariates_df</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 </code></pre></div>

@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">pmbbPheWASr</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.5</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -253,6 +253,13 @@ generate a report containing the PheWAS results:</p>
 <span>  mask_output <span class="op">=</span> <span class="va">cftr_mask_res</span>,</span>
 <span>  output_file <span class="op">=</span> <span class="st">"CFTR_pheWAS_report.html"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<p>The report will use the internal template by default, but you can
+also specify a template using the <code>template_path</code> argument.
+You can generate a copy of the default template using
+<code>usethis::use_template("combined_phewas_template.qmd", save_as = "combined_phewas_template.qmd", package = "pmbbPheWASr")</code>,
+which will be saved in the current working directory. You can then edit
+this template as needed and specify it in the <code>template_path</code>
+argument.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside>
