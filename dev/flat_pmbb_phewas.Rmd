@@ -253,7 +253,7 @@ filter_dataframe <- function(df, filter_list) {
     
     # Check if the column exists in the data frame
     if (!(col_filter %in% colnames(df))) {
-      warn(glue::glue("Column '{col_filter}' not found in the data frame. Skipping filter for this column."))
+      cli::cli_abort("Column {.val {col_filter}} not found in the data frame. Skipping filter for this column.")
       next
     }
     
@@ -314,7 +314,7 @@ pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col
     genotype_file <- fs::path(fs::path_temp(), "genotypes")
     
     allele_table <- variant_df %>%
-        dplyr::select(!!ensym(variant_id_col), !!ensym(effect_allele_col))
+        dplyr::select(!!rlang::ensym(variant_id_col), !!rlang::ensym(effect_allele_col))
     
    allele_table %>%
         data.table::fwrite(allele_file, col.names = FALSE, sep = "\t")
@@ -325,7 +325,7 @@ pmbb_extract_genotypes <- function(variant_df, variant_id_col, effect_allele_col
             "--bfile", bfile,
             "--threads", threads,
             "--memory", memory,
-            "--snps", variant_df %>% dplyr::pull(!!ensym(variant_id_col)),
+            "--snps", variant_df %>% dplyr::pull(!!rlang::ensym(variant_id_col)),
             "--export-allele", allele_file,
             "--export", "A",
             "--out", genotype_file
@@ -432,91 +432,108 @@ The `pmbb_extract_genotype_masks` function extracts genotypes for a subset of pa
 #' @export
 
 pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, variant_id_col, effect_allele_col, mask_operator = NULL, plink_bin, bfile, threads = 1, memory = 8000) {
-    
-    # Check if the names in the mask_operator list are present in the masks list
-    if (!is.null(mask_operator) && !all(names(mask_operator) %in% names(masks))) {
-      missing_masks <- setdiff(names(mask_operator), names(masks))
-      cli::cli_abort("The following mask operators are not present in the masks list: {missing_masks}")
-    }
-    
-    cli::cli_progress_step("Filtering variants for gene: {.val {gene}}")
-    
-    gene_variants <- awk_str_filter(
-      filename = annotation_file,
-      filter_col = gene_col, 
-      filter_str = gene
-    )
-    
-    cli::cli_progress_step("Applying variant masks")
-    
-    masked_variants <- apply_variant_masks(gene_variants, masks)
-    
-    cli::cli_progress_step("Extracting unique set of variant IDs across all masks")
-    
-    unique_variant_ids <- masked_variants %>%
-      purrr::map(\(x) purrr::pluck(x, "variants") %>% dplyr::pull(!!ensym(variant_id_col))) %>%
-      purrr::reduce(union)
-    
-    cli::cli_progress_step("Extracting genotypes for unique set of variant IDs")
-    
-    genotype_df <- pmbb_extract_genotypes(
-      variant_df = gene_variants %>% dplyr::filter(!!ensym(variant_id_col) %in% unique_variant_ids),
-      variant_id_col = !!ensym(variant_id_col),
-      effect_allele_col = !!ensym(effect_allele_col),
-      plink_bin = plink_bin,
-      bfile = bfile,
-      threads = threads,
-      memory = memory
-    )
-    
-    cli::cli_progress_step("Processing genotypes for each variant mask")
-    
-    mask_list <- purrr::imap(masked_variants, function(variant_list, mask_name) {
-      mask_genotypes <- genotype_df %>%
-        dplyr::mutate(ID = stringr::str_replace(variant_id, "_[^_]+$", "")) %>%
-        dplyr::filter(ID %in% (variant_list %>% purrr::pluck("variants") %>% dplyr::pull(!!ensym(variant_id_col))))
-      
-      if (is.null(mask_operator) || mask_operator[[mask_name]] == "burden") {
-        mask_genotypes_summarized <- mask_genotypes %>%
-          dplyr::group_by(PMBB_ID) %>%
-          dplyr::summarize(genotype = sum(genotype, na.rm = TRUE), .groups = "drop") %>%
-          dplyr::select(dplyr::everything(), genotype)
-        
-        list(variants = variant_list %>% purrr::pluck("variants") %>% filter(!!ensym(variant_id_col) %in% mask_genotypes$ID),
-             genotypes = mask_genotypes_summarized,
-             mask = variant_list %>% purrr::pluck("mask"),
-             mask_type = "burden")
-        
-      } else if (mask_operator[[mask_name]] == "single") {
+  # Check if the names in the mask_operator list are present in the masks list
+  if (!is.null(mask_operator) && !all(names(mask_operator) %in% names(masks))) {
+    missing_masks <- setdiff(names(mask_operator), names(masks))
+    cli::cli_abort("The following mask operators are not present in the masks list: {missing_masks}")
+  }
+
+  cli::cli_progress_step("Filtering variants for gene: {.val {gene}}")
+
+  gene_variants <- awk_str_filter(
+    filename = annotation_file,
+    filter_col = gene_col,
+    filter_str = gene
+  )
+
+  cli::cli_progress_step("Applying variant masks")
+
+  masked_variants <- apply_variant_masks(gene_variants, masks)
+
+  cli::cli_progress_step("Extracting unique set of variant IDs across all masks")
+
+  unique_variant_ids <- masked_variants %>%
+    purrr::map(\(x) purrr::pluck(x, "variants") %>% dplyr::pull(!!rlang::ensym(variant_id_col))) %>%
+    purrr::reduce(union)
+
+  if (length(unique_variant_ids) == 0) {
+    cli::cli_abort("No unique variants identified across all masks")
+  }
+
+  cli::cli_progress_step("Extracting genotypes for unique set of variant IDs")
+
+  genotype_df <- pmbb_extract_genotypes(
+    variant_df = gene_variants %>% dplyr::filter(!!rlang::ensym(variant_id_col) %in% unique_variant_ids),
+    variant_id_col = !!rlang::ensym(variant_id_col),
+    effect_allele_col = !!rlang::ensym(effect_allele_col),
+    plink_bin = plink_bin,
+    bfile = bfile,
+    threads = threads,
+    memory = memory
+  )
+
+  cli::cli_progress_step("Processing genotypes for each variant mask")
+
+  mask_list <- purrr::imap(masked_variants, function(variant_list, mask_name) {
+    mask_genotypes <- genotype_df %>%
+      dplyr::mutate(ID = stringr::str_replace(variant_id, "_[^_]+$", "")) %>%
+      dplyr::filter(ID %in% (variant_list %>% purrr::pluck("variants") %>% dplyr::pull(!!rlang::ensym(variant_id_col))))
+
+    if (is.null(mask_operator) || mask_operator[[mask_name]] == "burden") {
+      mask_genotypes_summarized <- mask_genotypes %>%
+        dplyr::group_by(PMBB_ID) %>%
+        dplyr::summarize(genotype = sum(genotype, na.rm = TRUE), .groups = "drop") %>%
+        dplyr::select(dplyr::everything(), genotype)
+
+      list(
+        variants = variant_list %>% purrr::pluck("variants") %>% dplyr::filter(!!rlang::ensym(variant_id_col) %in% mask_genotypes$ID),
+        genotypes = mask_genotypes_summarized,
+        mask = variant_list %>% purrr::pluck("mask"),
+        mask_type = "burden"
+      )
+    } else if (mask_operator[[mask_name]] == "single") {
+      mask_variants <- variant_list %>% purrr::pluck("variants")
+
+      if (nrow(mask_variants) == 0) {
+        list(list(
+          name = mask_name,
+          variants = tibble::tibble(),
+          genotypes = tibble::tibble(PMBB_ID = character(), genotype = numeric()),
+          mask = variant_list %>% purrr::pluck("mask"),
+          mask_type = "single"
+        ))
+      } else {
         purrr::map(unique(mask_genotypes$variant_id), function(variant) {
-          variant_genotypes <- mask_genotypes %>% 
+          variant_genotypes <- mask_genotypes %>%
             dplyr::filter(variant_id == variant) %>%
             dplyr::select(dplyr::everything(), genotype)
-          
+
           list(
             name = paste(mask_name, variant, sep = "_"),
-            variants = variant_list %>% purrr::pluck("variants") %>% dplyr::filter(!!ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
+            variants = variant_list %>% purrr::pluck("variants") %>% dplyr::filter(!!rlang::ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
             genotypes = variant_genotypes,
             mask = variant_list %>% purrr::pluck("mask"),
             mask_type = "single"
           )
         })
       }
-    })
-    
-    # Set the names of the mask_list for burden masks
-    burden_mask_names <- names(mask_operator)[mask_operator == "burden"]
-    names(mask_list)[names(mask_list) %in% burden_mask_names] <- burden_mask_names
-    
-    # Flatten the single-variant masks and set their names
-    single_mask_list <- purrr::flatten(mask_list[names(mask_list) %in% names(mask_operator)[mask_operator == "single"]])
-    names(single_mask_list) <- purrr::map_chr(single_mask_list, "name")
-    single_mask_list <- purrr::map(single_mask_list, ~ purrr::keep(.x, names(.x) %in% c("variants", "genotypes", "mask", "mask_type")))
-    
-    # Combine the burden and single-variant masks into the final mask_list
-    final_mask_list <- c(mask_list[names(mask_list) %in% burden_mask_names], single_mask_list)
-    
-    return(final_mask_list)
+    }
+  })
+
+  # Set the names of the mask_list for burden masks
+  burden_mask_names <- names(mask_operator)[mask_operator == "burden"]
+  names(mask_list)[names(mask_list) %in% burden_mask_names] <- burden_mask_names
+
+  # Flatten the single-variant masks and set their names
+  single_mask_list <- purrr::flatten(mask_list[names(mask_list) %in% names(mask_operator)[mask_operator == "single"]])
+  # print(single_mask_list)
+  names(single_mask_list) <- purrr::map_chr(single_mask_list, "name")
+  single_mask_list <- purrr::map(single_mask_list, ~ purrr::keep(.x, names(.x) %in% c("variants", "genotypes", "mask", "mask_type")))
+
+  # Combine the burden and single-variant masks into the final mask_list
+  final_mask_list <- c(mask_list[names(mask_list) %in% burden_mask_names], single_mask_list)
+
+  return(final_mask_list)
 }
 ```
 
@@ -566,9 +583,47 @@ test_that("pmbb_extract_genotype_masks works", {
     plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
     bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
   )
-  
+
   expect_type(ldlr_mask_res, "list")
   expect_equal(ldlr_mask_res$plof_0.001$mask_type, "burden")
+
+  expect_error(
+    pmbb_extract_genotype_masks(
+      gene = "PNPLA2",
+      annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+      gene_col = "Gene.refGene",
+      masks = list(
+        PNPLA2_plof_het_gt_10 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10")
+      ),
+      mask_operator = list(
+        PNPLA2_plof_het_gt_10 = "single"
+      ),
+      variant_id_col = ID,
+      effect_allele_col = Alt,
+      plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+      bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+    )
+  )
+
+  pnpla2_mask_res <- pmbb_extract_genotype_masks(
+    gene = "PNPLA2",
+    annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+    gene_col = "Gene.refGene",
+    masks = list(
+      PNPLA2_plof_het_gt_10 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+      PNPLA2_intronic = list(Gene.refGene = "== 'PNPLA2'", Func.ensGene = "== 'intronic'")
+    ),
+    mask_operator = list(
+      PNPLA2_plof_het_gt_10 = "single",
+      PNPLA2_intronic = "burden"
+    ),
+    variant_id_col = ID,
+    effect_allele_col = Alt,
+    plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+  )
+
+  expect_type(pnpla2_mask_res, "list")
 })
 ```
 
@@ -692,7 +747,7 @@ pmbb_format_covariates <- function(covariate_files, covariate_cols, covariate_po
   }
 
   covariate_df %>%
-    dplyr::select(PMBB_ID, {{ covariate_cols }}, !!ensym(covariate_population_col)) %>%
+    dplyr::select(PMBB_ID, {{ covariate_cols }}, !!rlang::ensym(covariate_population_col)) %>%
     assertr::assert(assertr::is_uniq, PMBB_ID)
 
 }
@@ -770,7 +825,7 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
 
   # Format covariate data
   if (is.character(covariate_files)) {
-    covariate_df <- pmbb_format_covariates(covariate_files, {{ covariate_cols }}, !!ensym(covariate_population_col), populations)
+    covariate_df <- pmbb_format_covariates(covariate_files, {{ covariate_cols }}, !!rlang::ensym(covariate_population_col), populations)
   } else if (is.data.frame(covariate_files)) {
     covariate_df <- covariate_files
   } else {
@@ -787,11 +842,11 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   phewas_res_list <- purrr::pmap(phewas_combos, \(genotype_masks, population, mask_name) {
     if (population != "ALL") {
       covariate_df <- covariate_df %>%
-        dplyr::filter(!!ensym(covariate_population_col) == population) %>%
-        dplyr::select(-!!ensym(covariate_population_col))
+        dplyr::filter(!!rlang::ensym(covariate_population_col) == population) %>%
+        dplyr::select(-!!rlang::ensym(covariate_population_col))
     } else {
       covariate_df <- covariate_df %>%
-        dplyr::select(-!!ensym(covariate_population_col))
+        dplyr::select(-!!rlang::ensym(covariate_population_col))
     }
 
     allele_counts <- genotype_masks %>%
@@ -892,8 +947,90 @@ test_that("run_pmbb_phewas works", {
   )
 
   expect_true(inherits(phewas_res, "data.frame"))
+  
+    pnpla2_mask_res <- pmbb_extract_genotype_masks(
+    gene = "PNPLA2",
+    annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+    gene_col = "Gene.refGene",
+    masks = list(
+      PNPLA2_plof_het_gt_10 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+      PNPLA2_intronic = list(Gene.refGene = "== 'PNPLA2'", Func.ensGene = "== 'intronic'")
+    ),
+    mask_operator = list(
+      PNPLA2_plof_het_gt_10 = "single",
+      PNPLA2_intronic = "burden"
+    ),
+    variant_id_col = ID,
+    effect_allele_col = Alt,
+    plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+  )
+  
+      suppressWarnings(
+    phewas_res <- run_pmbb_phewas(
+      mask_genotypes_list = pnpla2_mask_res,
+      phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(100),
+      covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+      populations = c("ALL", "EUR"),
+      covariate_population_col = "Class",
+      covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
+    )
+  )
+
+  expect_true(inherits(phewas_res, "data.frame"))
+    
 })
 ```
+
+```{r, eval=FALSE}
+lpl_genotype_mask_res <-  pmbbPheWASr::pmbb_extract_genotype_masks(
+      gene = c("ANGPTL3", "ANGPTL4", "ANGPTL8", "APOC3", "APOC2", "APOA5", "LPL", "PNPLA2"),
+      annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+      gene_col = "Gene.refGene",
+      masks = list(
+        ANGPTL3_plof_lt_0.01 = list(Gene.refGene = "== 'ANGPTL3'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        ANGPTL3_plof_het_gt_10 = list(Gene.refGene = "== 'ANGPTL3'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        ANGPTL4_plof_lt_0.01 = list(Gene.refGene = "== 'ANGPTL4'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        ANGPTL4_plof_het_gt_10 = list(Gene.refGene = "== 'ANGPTL4'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        ANGPTL8_plof_lt_0.01 = list(Gene.refGene = "== 'ANGPTL8'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        ANGPTL8_plof_het_gt_10 = list(Gene.refGene = "== 'ANGPTL8'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        APOC2_plof_lt_0.01 = list(Gene.refGene = "== 'APOC2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        APOC2_plof_het_gt_10 = list(Gene.refGene = "== 'APOC2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        APOC3_plof_lt_0.01 = list(Gene.refGene = "== 'APOC3'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        APOC3_plof_het_gt_10 = list(Gene.refGene = "== 'APOC3'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        APOA5_plof_lt_0.01 = list(Gene.refGene = "== 'APOA5'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        APOA5_plof_het_gt_10 = list(Gene.refGene = "== 'APOA5'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        LPL_plof_lt_0.01 = list(Gene.refGene = "== 'LPL'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        LPL_plof_het_gt_10 = list(Gene.refGene = "== 'LPL'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        PNPLA2_plof_lt_0.01 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        PNPLA2_plof_het_gt_10 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10")
+      ),
+      mask_operator = list(
+        ANGPTL3_plof_lt_0.01 = "burden",
+        ANGPTL3_plof_het_gt_10 = "single",
+        ANGPTL4_plof_lt_0.01 = "burden",
+        ANGPTL4_plof_het_gt_10 = "single",
+        ANGPTL8_plof_lt_0.01 = "burden",
+        ANGPTL8_plof_het_gt_10 = "single",
+        APOC2_plof_lt_0.01 = "burden",
+        APOC2_plof_het_gt_10 = "single",
+        APOC3_plof_lt_0.01 = "burden",
+        APOC3_plof_het_gt_10 = "single",
+        APOA5_plof_lt_0.01 = "burden",
+        APOA5_plof_het_gt_10 = "single",
+        LPL_plof_lt_0.01 = "burden",
+        LPL_plof_het_gt_10 = "single",
+        PNPLA2_plof_lt_0.01 = "burden",
+        PNPLA2_plof_het_gt_10 = "single"
+      ),
+      variant_id_col = ID,
+      effect_allele_col = Alt,
+      bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
+      plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    )
+    
+```
+
 
 ## Run a PheWAS and generate a report
 

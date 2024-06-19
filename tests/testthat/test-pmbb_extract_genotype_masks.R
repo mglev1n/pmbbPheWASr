@@ -22,7 +22,45 @@ test_that("pmbb_extract_genotype_masks works", {
     plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
     bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
   )
-  
+
   expect_type(ldlr_mask_res, "list")
   expect_equal(ldlr_mask_res$plof_0.001$mask_type, "burden")
+
+  expect_error(
+    pmbb_extract_genotype_masks(
+      gene = "PNPLA2",
+      annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+      gene_col = "Gene.refGene",
+      masks = list(
+        PNPLA2_plof_het_gt_10 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10")
+      ),
+      mask_operator = list(
+        PNPLA2_plof_het_gt_10 = "single"
+      ),
+      variant_id_col = ID,
+      effect_allele_col = Alt,
+      plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+      bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+    )
+  )
+
+  pnpla2_mask_res <- pmbb_extract_genotype_masks(
+    gene = "PNPLA2",
+    annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+    gene_col = "Gene.refGene",
+    masks = list(
+      PNPLA2_plof_het_gt_10 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+      PNPLA2_intronic = list(Gene.refGene = "== 'PNPLA2'", Func.ensGene = "== 'intronic'")
+    ),
+    mask_operator = list(
+      PNPLA2_plof_het_gt_10 = "single",
+      PNPLA2_intronic = "burden"
+    ),
+    variant_id_col = ID,
+    effect_allele_col = Alt,
+    plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+  )
+
+  expect_type(pnpla2_mask_res, "list")
 })

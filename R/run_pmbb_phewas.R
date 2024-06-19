@@ -66,7 +66,7 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
 
   # Format covariate data
   if (is.character(covariate_files)) {
-    covariate_df <- pmbb_format_covariates(covariate_files, {{ covariate_cols }}, !!ensym(covariate_population_col), populations)
+    covariate_df <- pmbb_format_covariates(covariate_files, {{ covariate_cols }}, !!rlang::ensym(covariate_population_col), populations)
   } else if (is.data.frame(covariate_files)) {
     covariate_df <- covariate_files
   } else {
@@ -83,11 +83,11 @@ run_pmbb_phewas <- function(mask_genotypes_list, phecode_file, covariate_files, 
   phewas_res_list <- purrr::pmap(phewas_combos, \(genotype_masks, population, mask_name) {
     if (population != "ALL") {
       covariate_df <- covariate_df %>%
-        dplyr::filter(!!ensym(covariate_population_col) == population) %>%
-        dplyr::select(-!!ensym(covariate_population_col))
+        dplyr::filter(!!rlang::ensym(covariate_population_col) == population) %>%
+        dplyr::select(-!!rlang::ensym(covariate_population_col))
     } else {
       covariate_df <- covariate_df %>%
-        dplyr::select(-!!ensym(covariate_population_col))
+        dplyr::select(-!!rlang::ensym(covariate_population_col))
     }
 
     allele_counts <- genotype_masks %>%

@@ -48,89 +48,106 @@
 #' }
 
 pmbb_extract_genotype_masks <- function(gene, annotation_file, gene_col, masks, variant_id_col, effect_allele_col, mask_operator = NULL, plink_bin, bfile, threads = 1, memory = 8000) {
-    
-    # Check if the names in the mask_operator list are present in the masks list
-    if (!is.null(mask_operator) && !all(names(mask_operator) %in% names(masks))) {
-      missing_masks <- setdiff(names(mask_operator), names(masks))
-      cli::cli_abort("The following mask operators are not present in the masks list: {missing_masks}")
-    }
-    
-    cli::cli_progress_step("Filtering variants for gene: {.val {gene}}")
-    
-    gene_variants <- awk_str_filter(
-      filename = annotation_file,
-      filter_col = gene_col, 
-      filter_str = gene
-    )
-    
-    cli::cli_progress_step("Applying variant masks")
-    
-    masked_variants <- apply_variant_masks(gene_variants, masks)
-    
-    cli::cli_progress_step("Extracting unique set of variant IDs across all masks")
-    
-    unique_variant_ids <- masked_variants %>%
-      purrr::map(\(x) purrr::pluck(x, "variants") %>% dplyr::pull(!!ensym(variant_id_col))) %>%
-      purrr::reduce(union)
-    
-    cli::cli_progress_step("Extracting genotypes for unique set of variant IDs")
-    
-    genotype_df <- pmbb_extract_genotypes(
-      variant_df = gene_variants %>% dplyr::filter(!!ensym(variant_id_col) %in% unique_variant_ids),
-      variant_id_col = !!ensym(variant_id_col),
-      effect_allele_col = !!ensym(effect_allele_col),
-      plink_bin = plink_bin,
-      bfile = bfile,
-      threads = threads,
-      memory = memory
-    )
-    
-    cli::cli_progress_step("Processing genotypes for each variant mask")
-    
-    mask_list <- purrr::imap(masked_variants, function(variant_list, mask_name) {
-      mask_genotypes <- genotype_df %>%
-        dplyr::mutate(ID = stringr::str_replace(variant_id, "_[^_]+$", "")) %>%
-        dplyr::filter(ID %in% (variant_list %>% purrr::pluck("variants") %>% dplyr::pull(!!ensym(variant_id_col))))
-      
-      if (is.null(mask_operator) || mask_operator[[mask_name]] == "burden") {
-        mask_genotypes_summarized <- mask_genotypes %>%
-          dplyr::group_by(PMBB_ID) %>%
-          dplyr::summarize(genotype = sum(genotype, na.rm = TRUE), .groups = "drop") %>%
-          dplyr::select(dplyr::everything(), genotype)
-        
-        list(variants = variant_list %>% purrr::pluck("variants") %>% filter(!!ensym(variant_id_col) %in% mask_genotypes$ID),
-             genotypes = mask_genotypes_summarized,
-             mask = variant_list %>% purrr::pluck("mask"),
-             mask_type = "burden")
-        
-      } else if (mask_operator[[mask_name]] == "single") {
+  # Check if the names in the mask_operator list are present in the masks list
+  if (!is.null(mask_operator) && !all(names(mask_operator) %in% names(masks))) {
+    missing_masks <- setdiff(names(mask_operator), names(masks))
+    cli::cli_abort("The following mask operators are not present in the masks list: {missing_masks}")
+  }
+
+  cli::cli_progress_step("Filtering variants for gene: {.val {gene}}")
+
+  gene_variants <- awk_str_filter(
+    filename = annotation_file,
+    filter_col = gene_col,
+    filter_str = gene
+  )
+
+  cli::cli_progress_step("Applying variant masks")
+
+  masked_variants <- apply_variant_masks(gene_variants, masks)
+
+  cli::cli_progress_step("Extracting unique set of variant IDs across all masks")
+
+  unique_variant_ids <- masked_variants %>%
+    purrr::map(\(x) purrr::pluck(x, "variants") %>% dplyr::pull(!!rlang::ensym(variant_id_col))) %>%
+    purrr::reduce(union)
+
+  if (length(unique_variant_ids) == 0) {
+    cli::cli_abort("No unique variants identified across all masks")
+  }
+
+  cli::cli_progress_step("Extracting genotypes for unique set of variant IDs")
+
+  genotype_df <- pmbb_extract_genotypes(
+    variant_df = gene_variants %>% dplyr::filter(!!rlang::ensym(variant_id_col) %in% unique_variant_ids),
+    variant_id_col = !!rlang::ensym(variant_id_col),
+    effect_allele_col = !!rlang::ensym(effect_allele_col),
+    plink_bin = plink_bin,
+    bfile = bfile,
+    threads = threads,
+    memory = memory
+  )
+
+  cli::cli_progress_step("Processing genotypes for each variant mask")
+
+  mask_list <- purrr::imap(masked_variants, function(variant_list, mask_name) {
+    mask_genotypes <- genotype_df %>%
+      dplyr::mutate(ID = stringr::str_replace(variant_id, "_[^_]+$", "")) %>%
+      dplyr::filter(ID %in% (variant_list %>% purrr::pluck("variants") %>% dplyr::pull(!!rlang::ensym(variant_id_col))))
+
+    if (is.null(mask_operator) || mask_operator[[mask_name]] == "burden") {
+      mask_genotypes_summarized <- mask_genotypes %>%
+        dplyr::group_by(PMBB_ID) %>%
+        dplyr::summarize(genotype = sum(genotype, na.rm = TRUE), .groups = "drop") %>%
+        dplyr::select(dplyr::everything(), genotype)
+
+      list(
+        variants = variant_list %>% purrr::pluck("variants") %>% dplyr::filter(!!rlang::ensym(variant_id_col) %in% mask_genotypes$ID),
+        genotypes = mask_genotypes_summarized,
+        mask = variant_list %>% purrr::pluck("mask"),
+        mask_type = "burden"
+      )
+    } else if (mask_operator[[mask_name]] == "single") {
+      mask_variants <- variant_list %>% purrr::pluck("variants")
+
+      if (nrow(mask_variants) == 0) {
+        list(list(
+          name = mask_name,
+          variants = tibble::tibble(),
+          genotypes = tibble::tibble(PMBB_ID = character(), genotype = numeric()),
+          mask = variant_list %>% purrr::pluck("mask"),
+          mask_type = "single"
+        ))
+      } else {
         purrr::map(unique(mask_genotypes$variant_id), function(variant) {
-          variant_genotypes <- mask_genotypes %>% 
+          variant_genotypes <- mask_genotypes %>%
             dplyr::filter(variant_id == variant) %>%
             dplyr::select(dplyr::everything(), genotype)
-          
+
           list(
             name = paste(mask_name, variant, sep = "_"),
-            variants = variant_list %>% purrr::pluck("variants") %>% dplyr::filter(!!ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
+            variants = variant_list %>% purrr::pluck("variants") %>% dplyr::filter(!!rlang::ensym(variant_id_col) == stringr::str_replace(variant, "_[^_]+$", "")),
             genotypes = variant_genotypes,
             mask = variant_list %>% purrr::pluck("mask"),
             mask_type = "single"
           )
         })
       }
-    })
-    
-    # Set the names of the mask_list for burden masks
-    burden_mask_names <- names(mask_operator)[mask_operator == "burden"]
-    names(mask_list)[names(mask_list) %in% burden_mask_names] <- burden_mask_names
-    
-    # Flatten the single-variant masks and set their names
-    single_mask_list <- purrr::flatten(mask_list[names(mask_list) %in% names(mask_operator)[mask_operator == "single"]])
-    names(single_mask_list) <- purrr::map_chr(single_mask_list, "name")
-    single_mask_list <- purrr::map(single_mask_list, ~ purrr::keep(.x, names(.x) %in% c("variants", "genotypes", "mask", "mask_type")))
-    
-    # Combine the burden and single-variant masks into the final mask_list
-    final_mask_list <- c(mask_list[names(mask_list) %in% burden_mask_names], single_mask_list)
-    
-    return(final_mask_list)
+    }
+  })
+
+  # Set the names of the mask_list for burden masks
+  burden_mask_names <- names(mask_operator)[mask_operator == "burden"]
+  names(mask_list)[names(mask_list) %in% burden_mask_names] <- burden_mask_names
+
+  # Flatten the single-variant masks and set their names
+  single_mask_list <- purrr::flatten(mask_list[names(mask_list) %in% names(mask_operator)[mask_operator == "single"]])
+  # print(single_mask_list)
+  names(single_mask_list) <- purrr::map_chr(single_mask_list, "name")
+  single_mask_list <- purrr::map(single_mask_list, ~ purrr::keep(.x, names(.x) %in% c("variants", "genotypes", "mask", "mask_type")))
+
+  # Combine the burden and single-variant masks into the final mask_list
+  final_mask_list <- c(mask_list[names(mask_list) %in% burden_mask_names], single_mask_list)
+
+  return(final_mask_list)
 }

@@ -37,4 +37,36 @@ test_that("run_pmbb_phewas works", {
   )
 
   expect_true(inherits(phewas_res, "data.frame"))
+  
+    pnpla2_mask_res <- pmbb_extract_genotype_masks(
+    gene = "PNPLA2",
+    annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+    gene_col = "Gene.refGene",
+    masks = list(
+      PNPLA2_plof_het_gt_10 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+      PNPLA2_intronic = list(Gene.refGene = "== 'PNPLA2'", Func.ensGene = "== 'intronic'")
+    ),
+    mask_operator = list(
+      PNPLA2_plof_het_gt_10 = "single",
+      PNPLA2_intronic = "burden"
+    ),
+    variant_id_col = ID,
+    effect_allele_col = Alt,
+    plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL"
+  )
+  
+      suppressWarnings(
+    phewas_res <- run_pmbb_phewas(
+      mask_genotypes_list = pnpla2_mask_res,
+      phecode_file = pmbb_phecodes %>% dplyr::select(1:5) %>% head(100),
+      covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
+      populations = c("ALL", "EUR"),
+      covariate_population_col = "Class",
+      covariate_cols = c(Age = Age_at_Enrollment, Sex = Gen_Sex, dplyr::starts_with("Genotype_PC"))
+    )
+  )
+
+  expect_true(inherits(phewas_res, "data.frame"))
+    
 })

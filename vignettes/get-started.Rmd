@@ -237,6 +237,55 @@ phewas_res <- run_pmbb_phewas(
 
   
 
+```{r eval = FALSE}
+lpl_genotype_mask_res <-  pmbbPheWASr::pmbb_extract_genotype_masks(
+      gene = c("ANGPTL3", "ANGPTL4", "ANGPTL8", "APOC3", "APOC2", "APOA5", "LPL", "PNPLA2"),
+      annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
+      gene_col = "Gene.refGene",
+      masks = list(
+        ANGPTL3_plof_lt_0.01 = list(Gene.refGene = "== 'ANGPTL3'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        ANGPTL3_plof_het_gt_10 = list(Gene.refGene = "== 'ANGPTL3'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        ANGPTL4_plof_lt_0.01 = list(Gene.refGene = "== 'ANGPTL4'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        ANGPTL4_plof_het_gt_10 = list(Gene.refGene = "== 'ANGPTL4'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        ANGPTL8_plof_lt_0.01 = list(Gene.refGene = "== 'ANGPTL8'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        ANGPTL8_plof_het_gt_10 = list(Gene.refGene = "== 'ANGPTL8'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        APOC2_plof_lt_0.01 = list(Gene.refGene = "== 'APOC2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        APOC2_plof_het_gt_10 = list(Gene.refGene = "== 'APOC2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        APOC3_plof_lt_0.01 = list(Gene.refGene = "== 'APOC3'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        APOC3_plof_het_gt_10 = list(Gene.refGene = "== 'APOC3'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        APOA5_plof_lt_0.01 = list(Gene.refGene = "== 'APOA5'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        APOA5_plof_het_gt_10 = list(Gene.refGene = "== 'APOA5'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        LPL_plof_lt_0.01 = list(Gene.refGene = "== 'LPL'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        LPL_plof_het_gt_10 = list(Gene.refGene = "== 'LPL'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10"),
+        PNPLA2_plof_lt_0.01 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", gnomAD_exome_ALL = "< 0.01"),
+        PNPLA2_plof_het_gt_10 = list(Gene.refGene = "== 'PNPLA2'", ExonicFunc.ensGene = "%in% c('stopgain', 'stoploss', 'frameshift substitution')", HET_REF_ALT_CTS = "> 10")
+      ),
+      mask_operator = list(
+        ANGPTL3_plof_lt_0.01 = "burden",
+        ANGPTL3_plof_het_gt_10 = "single",
+        ANGPTL4_plof_lt_0.01 = "burden",
+        ANGPTL4_plof_het_gt_10 = "single",
+        ANGPTL8_plof_lt_0.01 = "burden",
+        ANGPTL8_plof_het_gt_10 = "single",
+        APOC2_plof_lt_0.01 = "burden",
+        APOC2_plof_het_gt_10 = "single",
+        APOC3_plof_lt_0.01 = "burden",
+        APOC3_plof_het_gt_10 = "single",
+        APOA5_plof_lt_0.01 = "burden",
+        APOA5_plof_het_gt_10 = "single",
+        LPL_plof_lt_0.01 = "burden",
+        LPL_plof_het_gt_10 = "single",
+        PNPLA2_plof_lt_0.01 = "burden",
+        PNPLA2_plof_het_gt_10 = "single"
+      ),
+      variant_id_col = ID,
+      effect_allele_col = Alt,
+      bfile = "/project/PMBB/PMBB-Release-2020-2.0/Exome/pVCF/all_variants/PMBB-Release-2020-2.0_genetic_exome_GL",
+      plink_bin = "/project/voltron/Applications/PLINK/plink2_linux_avx2_20230607/plink2",
+    )
+    
+```
+
 ## Run a PheWAS and generate a report
 
 The `run_pmbb_phewas_report` function is a wrapper around the `run_pmbb_phewas` function that generates an HTML report of the results.

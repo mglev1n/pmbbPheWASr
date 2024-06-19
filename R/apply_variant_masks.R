@@ -97,7 +97,7 @@ filter_dataframe <- function(df, filter_list) {
     
     # Check if the column exists in the data frame
     if (!(col_filter %in% colnames(df))) {
-      warn(glue::glue("Column '{col_filter}' not found in the data frame. Skipping filter for this column."))
+      cli::cli_abort("Column {.val {col_filter}} not found in the data frame. Skipping filter for this column.")
       next
     }
     
