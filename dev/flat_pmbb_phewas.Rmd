@@ -1221,13 +1221,19 @@ render_pmbb_phewas_report <- function(mask_output, phewas_output, output_file, t
     phewas_output <- temp_phewas_file
   }
 
+  quarto_render_dir <- fs::path_temp()
+  
+  cli::cli_progress_step("Copying files to temporary directory")
+  
   if (!is.null(template_path)) {
     if (!file.exists(template_path)) {
       cli::cli_abort("{.arg {template_path}} does not exist. Please provide a valid path to a Quarto template file.")
     }
+    fs::file_copy(template_path, fs::path(quarto_render_dir, basename(template_path)), overwrite = TRUE)
+    template_path <- fs::path(quarto_render_dir, basename(template_path))
   } else {
     cli::cli_alert_info("No results template provided. Using default template.")
-    template_path <- ".combined_phewas_template.qmd"
+    template_path <- fs::path(quarto_render_dir, ".combined_phewas_template.qmd")
     usethis::use_template(template = "combined_phewas_template.qmd", save_as = template_path, package = "pmbbPheWASr")
   }
 
@@ -1238,26 +1244,29 @@ render_pmbb_phewas_report <- function(mask_output, phewas_output, output_file, t
   if (!file.exists(phewas_output)) {
     cli::cli_abort("{.arg {phewas_output}} does not exist. Please provide a valid path to a PheWAS results file.")
   }
-
-  quarto::quarto_render(
-    input = template_path,
-    output_format = "html",
-    execute_params = list(
-      mask_results = fs::path_abs(mask_output),
-      phewas_results = fs::path_abs(phewas_output),
-      ...
-    ),
-    output_file = basename(output_file)
+  cli::cli_progress_step("Rendering report")
+  withr::with_dir(
+    quarto_render_dir,
+    quarto::quarto_render(
+      input = fs::path_abs(template_path),
+      output_format = "html",
+      execute_params = list(
+        mask_results = fs::path_abs(mask_output),
+        phewas_results = fs::path_abs(phewas_output),
+        ...
+      ),
+      output_file = basename(output_file)
+    )
   )
 
   fs::dir_create(fs::path_dir(output_file))
 
-  fs::file_move(basename(output_file), output_file)
+  fs::file_move(fs::path(quarto_render_dir, basename(output_file)), output_file)
 
-  if (file.exists(".combined_phewas_template.qmd")) {
-    fs::file_delete(".combined_phewas_template.qmd")
-  }
-
+  # if (file.exists(".combined_phewas_template.qmd")) {
+  #   fs::file_delete(".combined_phewas_template.qmd")
+  # }
+  
   # Return the path to the generated report file
   cli::cli_alert_success("PheWAS report rendered successfully: {.val {output_file}}")
 }

@@ -1,0 +1,430 @@
+---
+title: PMBB-PheWAS {{< meta params.gene_names >}}
+author: 
+  - name: Michael Levin, MD
+    orcid: 0000-0002-9937-9932
+date: last-modified
+format:
+  html:
+    grid:
+      body-width: 1100px
+    code-tools: true
+    toc: true
+    toc-depth: 6
+    cap-location: top
+    embed-resources: true
+    citations-hover: true
+fig-height: 4
+fig-format: svg
+execute:
+  warning: false
+  message: false
+  echo: false
+csl: https://raw.githubusercontent.com/citation-style-language/styles/6152ccea8b7d7a472910d36524d1bf3557a83bfc/dependent/nature-genetics.csl
+
+params:
+  gene_names: NULL
+  mask_results: NULL
+  phewas_results: NULL
+  function_call: NULL
+  pmbb_website: https://pmbb.med.upenn.edu/data-access/
+  viridis_color_scheme: magma #color scheme from the viridis package
+
+---
+
+
+```{r}
+library(tidyverse)
+library(pmbbPheWASr)
+library(rlang)
+library(PheWAS)
+library(htmltools)
+library(reactable)
+
+theme_set(theme_bw(base_size = 16))
+```
+
+```{r include=FALSE}
+# Init step to ensure that JS dependencies are included in the HTML doc
+reactable(mtcars)
+```
+
+```{r}
+render_phecode_reactable <- function(phewas_res_df, ...) {
+  phewas_res_df %>%
+    ungroup() %>%
+    select(-adjustment, -snp) %>%
+    PheWAS::addPhecodeInfo() %>%
+    select(phenotype, description, everything()) %>%
+    relocate(c(mask_name, population), .after = last_col()) %>%
+    mutate(across(where(is.numeric), ~ signif(., 3))) %>%
+    reactable(
+      filterable = TRUE,
+      searchable = TRUE,
+      compact = TRUE,
+      bordered = TRUE,
+      striped = TRUE,
+      highlight = TRUE,
+      wrap = FALSE,
+      columns = list(
+        p = colDef(cell = function(value) {
+          format(signif(value, 3))
+        }),
+        mask_name = colDef(width = 150),
+        phenotype = colDef(width = 150),
+        description = colDef(width = 150),
+        group = colDef(width = 150)
+      ),
+      ...
+    )
+}
+
+render_other_reactable <- function(phewas_res_df, ...) {
+  phewas_res_df %>%
+    ungroup() %>%
+    select(-adjustment, -snp) %>%
+    select(phenotype, everything()) %>%
+    relocate(c(mask_name, population), .after = last_col()) %>%
+    mutate(across(where(is.numeric), ~ signif(., 3))) %>%
+    reactable(
+      filterable = TRUE,
+      searchable = TRUE,
+      compact = TRUE,
+      bordered = TRUE,
+      striped = TRUE,
+      highlight = TRUE,
+      wrap = FALSE,
+      columns = list(
+        p = colDef(cell = function(value) {
+          format(signif(value, 3))
+        }),
+        mask_name = colDef(width = 150),
+        phenotype = colDef(width = 150)
+      ),
+      ...
+    )
+}
+
+plot_phewas_manhattan <- function(phewas_res_df, ...) {
+  if (nrow(phewas_res_df %>% filter(!is.na(p))) == 0) {
+    empty_plot <- ggplot() +
+      theme_void() +
+      annotate("text", x = 0, y = 0, label = "No associations found", size = 6, color = "black") +
+      theme(plot.margin = margin(20, 20, 20, 20))
+
+    return(empty_plot)
+  }
+
+  phewas_res_df %>%
+    PheWAS::phewasManhattan(
+      OR.direction = TRUE,
+      OR.size = TRUE,
+      sort.by.category.value = TRUE,
+      # suggestive.line = FALSE,
+      annotate.phenotype.description = TRUE,
+      annotate.size = 4,
+      title = NULL,
+      x.axis.label = NULL,
+      y.axis.label = expression(-log[10]("p-value")),
+      color.palette = viridis::viridis_pal(option = params$viridis_color_scheme)(20),
+      ...
+    ) +
+    scale_shape_manual(
+      limits = c(TRUE, FALSE),
+      breaks = c(TRUE, FALSE),
+      na.translate = TRUE,
+      values = c(24, 25),
+      labels = c("Increase", "Decrease"),
+      name = "Effect direction"
+    ) +
+    guides(shape = guide_legend(override.aes = list(shape = c(24, 25), fill = "black", size = 3))) +
+    theme_bw(base_size = 16) +
+    theme(
+      panel.background = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.text.x = element_text(angle = -40, hjust = 0, vjust = 1)
+    )
+}
+
+plot_other_manhattan <- function(df) {
+  df <- df %>%
+    filter(!is.na(p)) %>%
+    mutate(category = "other")
+
+  adjusted_p <- 0.05 / nrow(df)
+
+  df %>%
+    arrange(p) %>%
+    mutate(p_adj = p.adjust(p)) %>%
+    mutate(label = case_when(p_adj < 0.05 ~ phenotype,
+      .default = NA
+    )) %>%
+    mutate(row = row_number()) %>%
+    ggplot(aes(row, -log10(p), shape = as.character(sign(beta)), label = label, fill = category)) +
+    geom_hline(yintercept = -log10(0.05), colour = "blue", alpha = I(1 / 3), size = 1) +
+    geom_hline(yintercept = -log10(adjusted_p), colour = "red", alpha = I(1 / 3), size = 1) +
+    geom_point(size = 2) +
+    ggrepel::geom_text_repel() +
+    scale_shape_manual(
+      limits = c(-1, 1),
+      values = c(25, 24),
+      labels = c("Decrease", "Increase"),
+      name = "Effect direction"
+    ) +
+    scale_fill_viridis_d(option = params$viridis_color_scheme) +
+    labs(x = "Other", y = expression(-log[10]("p-value"))) +
+    theme_bw(base_size = 16) +
+    theme(
+      panel.background = element_blank(),
+      panel.grid.minor = element_blank(),
+      # axis.text.x = element_text(angle = -40, hjust = 0, vjust = 1),
+      axis.text.x = element_blank(),
+      axis.ticks.x = element_blank()
+    )
+}
+
+render_callout <- function(title, message, callout_type = "important", collapse = "false") {
+  cat(glue::glue("\n::: {.callout-{{callout_type}} collapse='{{collapse}}' appearance='simple'}\n", .open = "{{", .close = "}}"))
+  cat("\n#### ", title, "\n\n", message, "\n")
+  cat("\n:::\n")
+
+  # cat(glue::glue("\n::: {.callout-important collapse='false' appearance='simple'}\n"))
+  # cat("#### Variant information\n\n")
+  # cat("No variants were found for this mask.")
+  # cat("\n:::\n")
+}
+```
+
+
+```{r load-data}
+phewas_res <- readRDS(params$phewas_results)
+
+phewas_res_nested <- phewas_res %>%
+  mutate(
+    gene = str_extract(mask_name, "^[[:alnum:]]*")
+  ) %>%
+  group_nest(gene, keep = TRUE)
+
+
+masks_res <- readRDS(params$mask_results)
+```
+
+<!-- ::: panel-tabset -->
+
+::: {.callout-note icon=false}
+
+## PMBB PheWAS Information
+Details of genotype quality control are available at: [`r glue::glue("{params$pmbb_website}")`](`r glue::glue("({params$pmbb_website})")`) (PennKey required). Following quality control, variants meeting crtieria for each mask were identified. For each mask, variants were either summed into a burden or additive genotypes were tested on a single-variant basis. Phenome-Wide Association Studies (pheWAS) ([https://phewascatalog.org/](https://phewascatalog.org/)) were performed based on an additive model to test the association between burden or single variants within each mask and clinical phenotypes among PMBB participants. 
+
+```{r}
+#| output: asis
+glue::glue("**PheWAS Covariates:** {phewas_res %>% head(1) %>% pull(covariates) %>% pluck(1) %>% glue::glue_collapse(sep = ', ')}")
+```
+
+:::
+
+
+# Genotype Masks
+
+```{r, results = 'asis'}
+#| output: asis
+#| results: asis
+#| fig-height: 6
+#| fig-width: 12
+
+### PheWAS results
+
+purrr::pwalk(phewas_res_nested, \(gene, data) {
+  cat(paste0("\n## ", gene, "\n\n"))
+  data %>%
+    group_nest(mask_name, keep = TRUE) %>%
+    purrr::pwalk(\(mask_name, data) {
+      # print mask information
+      cat(paste0("\n### ", str_replace(mask_name, "^[[:alnum:]]*_", ""), "\n\n"))
+
+      cat("\n::: {.callout-note collapse='true' appearance='simple' icon=false}\n")
+      cat("#### Mask information\n\n")
+      cat(glue::glue("**Mask name**: {mask_name} \n\n"))
+      cat("\n")
+      cat(glue::glue("**Mask type**: {masks_res %>% pluck(mask_name, 'mask_type')} \n\n"))
+      cat("\n\n")
+
+    masks_res %>%
+      pluck(mask_name, "mask") %>%
+      rlang::parse_expr() %>%
+      rlang::eval_bare() %>%
+      as_tibble() %>%
+      tidytable::pivot_longer(names_to = "variable", values_to = "criteria") %>%
+      reactable(
+        compact = TRUE,
+        bordered = TRUE,
+        highlight = TRUE
+      ) %>%
+      shiny::tagList() %>%
+      print()
+
+    cat("\n:::\n")
+    cat("\n\n")
+
+    variant_info <- masks_res %>%
+      pluck(mask_name, "variants")
+
+    if (nrow(variant_info) == 0) {
+      render_callout(title = "Variant Information", message = "No variants were found for this mask.", callout_type = "important")
+      # cat("\n::: {.callout-important collapse='false' appearance='simple'}\n")
+      # cat("#### Variant information\n\n")
+      # cat("No variants were found for this mask.")
+      # cat("\n:::\n")
+    } else {
+      cat("\n::: {.callout-tip collapse='true' appearance='simple' icon=false}\n")
+      cat("#### Variant information\n\n")
+
+      variant_info %>%
+        reactable(
+          filterable = TRUE,
+          searchable = TRUE,
+          compact = TRUE,
+          bordered = TRUE,
+          striped = TRUE,
+          highlight = TRUE,
+          wrap = FALSE
+        ) %>%
+        shiny::tagList() %>%
+        print()
+
+      cat("\n:::\n")
+      cat("\n\n")
+    }
+
+
+    # print ancestry plots/tables
+    if (nrow(variant_info) == 0) {
+      # return early if no variants are present
+      return()
+    } else {
+      dataset <- data %>%
+        group_nest(population, keep = TRUE)
+
+      if ("ALL" %in% dataset$population) {
+        dataset <- dataset %>%
+          mutate(population = fct_relevel(population, "ALL")) %>%
+          arrange(population)
+      }
+
+      # print ancestry plots/tables
+      cat("\n::: panel-tabset\n")
+      purrr::pwalk(dataset, \(population, data) {
+        cat(paste0("\n##### ", population, "\n\n"))
+
+        # Extract rows where phenotype is in PheWAS::pheinfo$phecode
+        phecode_data <- data %>%
+          filter(phenotype %in% PheWAS::pheinfo$phecode)
+
+        # Extract rows where phenotype is not in PheWAS::pheinfo$phecode
+        other_data <- data %>%
+          filter(!phenotype %in% PheWAS::pheinfo$phecode)
+
+        cat("\n:::: panel-tabset\n")
+
+        if (nrow(phecode_data) > 0) {
+          cat("\n###### PheCodes\n\n")
+
+          phecode_data %>%
+            select(-allele_counts) %>%
+            plot_phewas_manhattan() %>%
+            print()
+
+          phecode_data_table <- data %>%
+            select(-allele_counts, -covariates) %>%
+            # filter(!is.na(p)) %>%
+            arrange(p)
+
+          table_id <- uuid::UUIDgenerate()
+          table_filename <- fs::path_sanitize(glue::glue_collapse(c(params$gene_names, mask_name, unique(phecode_data_table$population), ".csv"), sep = "_", last = ""))
+
+          htmltools::tagList(
+            htmltools::tags$button(
+              "Download as CSV",
+              onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", table_id, table_filename)
+            ),
+            render_phecode_reactable(phecode_data_table, elementId = table_id)
+          ) %>%
+            print()
+        }
+
+        if (nrow(other_data) > 0) {
+          cat("\n###### Other \n\n")
+
+          other_data %>%
+            select(-allele_counts) %>%
+            plot_other_manhattan() %>%
+            print()
+
+          other_data_table <- other_data %>%
+            select(-allele_counts, -covariates) %>%
+            # filter(!is.na(p)) %>%
+            arrange(p)
+
+          table_id <- uuid::UUIDgenerate()
+          table_filename <- fs::path_sanitize(glue::glue_collapse(c(params$gene_names, mask_name, unique(other_data_table$population), ".csv"), sep = "_", last = ""))
+
+          htmltools::tagList(
+            htmltools::tags$button(
+              "Download as CSV",
+              onclick = sprintf("Reactable.downloadDataCSV('%s', '%s')", table_id, table_filename)
+            ),
+            render_other_reactable(other_data_table, elementId = table_id)
+          ) %>%
+            print()
+        }
+
+        cat("\n:::: \n")
+
+        cat("\n**Allele Counts:**\n")
+
+        data %>%
+          head(1) %>%
+          pull(allele_counts) %>%
+          purrr::pluck(1) %>%
+          reactable(
+            compact = TRUE,
+            bordered = TRUE,
+            highlight = TRUE,
+            fullWidth = FALSE
+          ) %>%
+          shiny::tagList() %>%
+          print()
+      })
+    }
+
+    cat("\n::: \n")
+
+    cat("\n---\n")
+    })
+})
+```
+
+<details><summary>Session Info</summary>
+
+```{r, echo = FALSE}
+# save the session info as an object
+pkg_sesh <- sessioninfo::session_info(pkgs = "attached")
+
+# get the quarto version
+quarto_version <- system("quarto --version", intern = TRUE)
+
+# inject the quarto info
+pkg_sesh$platform$quarto <- paste(
+  system("quarto --version", intern = TRUE),
+  "@",
+  quarto::quarto_path()
+)
+
+pkg_sesh$platform$phewas_results <- params$phewas_results
+pkg_sesh$platform$mask_results <- params$mask_results
+
+# print it out
+pkg_sesh
+```
+
+</details>

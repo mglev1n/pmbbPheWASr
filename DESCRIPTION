@@ -32,7 +32,8 @@ Imports:
     tidyselect,
     tidytable,
     usethis,
-    vroom
+    vroom,
+    withr
 Suggests: 
     knitr,
     rmarkdown,
