@@ -1,6 +1,6 @@
 Package: pmbbPheWASr
 Title: Penn Medicine Biobank Phenome-wide Association Studies
-Version: 0.3.6
+Version: 0.3.7
 Authors@R: 
     person("Michael", "Levin", , "michael.levin@pennmedicine.upenn.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9937-9932"))
