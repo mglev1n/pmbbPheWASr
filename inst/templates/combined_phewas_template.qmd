@@ -184,11 +184,15 @@ plot_other_manhattan <- function(df) {
     )
 }
 
-render_callout <- function(title, message, callout_type = "important") {
-  cat(glue::glue("\n::: {.callout-{{callout_type}}  appearance='simple'}\n", .open = "{{", .close = "}}"))
-  cat("\n## ", title, "\n\n", message, "\n")
-  cat("\n::: \n")
-  cat("\n\n")
+render_callout <- function(title, message, callout_type = "important", collapse = "false") {
+  cat(glue::glue("\n::: {.callout-{{callout_type}} collapse='{{collapse}}' appearance='simple'}\n", .open = "{{", .close = "}}"))
+  cat("\n#### ", title, "\n\n", message, "\n")
+  cat("\n:::\n")
+
+  # cat(glue::glue("\n::: {.callout-important collapse='false' appearance='simple'}\n"))
+  # cat("#### Variant information\n\n")
+  # cat("No variants were found for this mask.")
+  # cat("\n:::\n")
 }
 
 ```
@@ -232,7 +236,7 @@ purrr::pwalk(phewas_res_nested, \(mask_name, data) {
   cat(paste0("\n### ", mask_name, "\n\n"))
 
   cat("\n::: {.callout-note collapse='true' appearance='simple' icon=false}\n")
-  cat("## Mask information\n\n")
+  cat("#### Mask information\n\n")
   cat(glue::glue("**Mask name**: {mask_name} \n\n"))
   cat("\n")
   cat(glue::glue("**Mask type**: {masks_res %>% pluck(mask_name, 'mask_type')} \n\n"))
@@ -259,14 +263,14 @@ purrr::pwalk(phewas_res_nested, \(mask_name, data) {
     pluck(mask_name, "variants")
 
   if (nrow(variant_info) == 0) {
-    render_callout("Variant Information", "No variants were found for this mask.", "important")
+    render_callout(title = "Variant Information", message = "No variants were found for this mask.", callout_type = "important")
     # cat("\n::: {.callout-important collapse='false' appearance='simple'}\n")
-    # cat("## Variant information\n\n")
+    # cat("#### Variant information\n\n")
     # cat("No variants were found for this mask.")
     # cat("\n:::\n")
   } else {
     cat("\n::: {.callout-tip collapse='true' appearance='simple' icon=false}\n")
-    cat("## Variant information\n\n")
+    cat("#### Variant information\n\n")
 
     variant_info %>%
       reactable(
@@ -303,7 +307,7 @@ purrr::pwalk(phewas_res_nested, \(mask_name, data) {
     # print ancestry plots/tables
     cat("\n::: panel-tabset\n")
     purrr::pwalk(dataset, \(population, data) {
-      cat(paste0("\n#### ", population, "\n\n"))
+      cat(paste0("\n##### ", population, "\n\n"))
 
      # Extract rows where phenotype is in PheWAS::pheinfo$phecode
       phecode_data <- data %>%
@@ -317,7 +321,7 @@ purrr::pwalk(phewas_res_nested, \(mask_name, data) {
       
       if(nrow(phecode_data) > 0) {
         
-        cat("\n##### PheCodes\n\n")
+        cat("\n###### PheCodes\n\n")
         
         phecode_data %>%
           select(-allele_counts) %>%
@@ -344,7 +348,7 @@ purrr::pwalk(phewas_res_nested, \(mask_name, data) {
       }
       
       if(nrow(other_data) > 0) {
-        cat("\n##### Other \n\n")
+        cat("\n###### Other \n\n")
         
         other_data %>%
           select(-allele_counts) %>%
