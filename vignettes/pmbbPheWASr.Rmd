@@ -1,6 +1,8 @@
 ---
 title: "Get started"
 output: rmarkdown::html_vignette
+params:
+  run: FALSE
 vignette: >
   %\VignetteIndexEntry{Get started}
   %\VignetteEngine{knitr::rmarkdown}
@@ -18,12 +20,12 @@ knitr::opts_chunk$set(
 
 ## Installation
 
-```{r, eval=FALSE}
+```{r, eval = FALSE}
 # install.packages("devtools")
 devtools::install_github("mglev1n/pmbbPheWASr")
 ```
 
-```{r setup, eval=FALSE}
+```{r setup, eval = params$run}
 library(pmbbPheWASr)
 library(tidyverse)
 ```
@@ -34,7 +36,7 @@ When performing PheWAS with whole-genome or whole-exome sequence data, the frequ
 
 Here, we will use the `masks` argument to define a mask called `plof_lt_0.001` that includes all putative loss-of-function variants ('stopgain', 'stoploss', 'frameshift substitution') with a gnoMAD minor allele frequency less than 0.1% in the `CFTR` gene. We will then use the `mask_operator` argument to specify that we want to consider the `burden` of variants in this mask.
 
-```{r, eval=FALSE}
+```{r, eval = params$run}
 cftr_mask_res <- pmbb_extract_genotype_masks(
   gene = "CFTR",
   annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
@@ -54,7 +56,7 @@ cftr_mask_res <- pmbb_extract_genotype_masks(
 
 We might also want to individually consider any Pathogenic/Likely pathogenic variants that are present in >10 PMBB participants. We can define a new mask called `p_lp_het_gt_10` that includes all Pathogenic/Likely pathogenic variants in the `CFTR` gene that are present in >10 PMBB participants. We will then use the `mask_operator` argument to specify that we want to individually consider each `single` variant in this mask.
 
-```{r, eval=FALSE}
+```{r, eval = params$run}
 cftr_mask_res <- pmbb_extract_genotype_masks(
   gene = "CFTR",
   annotation_file = "/project/PMBB/PMBB-Release-2020-2.0/Exome/Variant_annotations/PMBB-Release-2020-2.0_genetic_exome_variant-annotation-counts.txt",
@@ -85,7 +87,7 @@ The following functions allow users to format phenotype and covariate data for u
 
 The `pmbb_format_phecodes` function allows users to format the PMBB PheCode data for use in PheWAS analyses. The `phecode_case_threshold` allows the user to define how many instances of a phecode are required for an individual to be considered a case. For example, if `phecode_case_threshold = 2`, then a participant must have at least 2 instances of a phecode to be considered a case for that phecode:
 
-```{r, eval=FALSE}
+```{r, eval = params$run}
 pmbb_phecodes_df <- pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_phenotype_PheCode-matrix.txt", phecode_case_threshold = 2)
 ```
 
@@ -93,7 +95,7 @@ pmbb_phecodes_df <- pmbb_format_phecodes(phecode_file = "/project/PMBB/PMBB-Rele
 
 The `pmbb_format_labs` function allows users to format PMBB lab data for use in PheWAS analyses. The user can specify which lab files to extract from the lab data, and specify whether inpatient or outpatient labs should be used:
 
-```{r, eval=FALSE}
+```{r, eval = params$run}
 pmbb_labs_df <- fs::dir_ls("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/", glob = "*labs*", recurse = TRUE) %>%
   pmbb_format_labs()
 ```
@@ -102,7 +104,7 @@ pmbb_labs_df <- fs::dir_ls("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/",
 
 The `pmbb_format_covariates` function allows users to format PMBB demographic and covariate data. The user may supply multiple files containing covariate data, and they will be sequentially appended to the first file. Users can also specify which covariates should be extracted from the files, and any population subgroups that should be included in stratified analysis.
 
-```{r, eval=FALSE}
+```{r, eval = params$run}
 pmbb_covariates_df <- pmbbPheWASr:::pmbb_format_covariates(
   covariate_files = c("/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.3/PMBB-Release-2020-2.3_covariates.txt", "/project/PMBB/PMBB-Release-2020-2.0/Phenotype/2.1/PMBB-Release-2020-2.1_phenotype_covariates.txt"),
   populations = c("ALL", "EUR"),
@@ -115,13 +117,13 @@ pmbb_covariates_df <- pmbbPheWASr:::pmbb_format_covariates(
 
 The `run_pmbb_phewas` function runs a PheWAS on the PMBB data. The user may specify the genotype, phenotype, and covariate data to include in the analysis. Here, we'll first combine the phecode and lab data: 
 
-```{r, eval=FALSE}
+```{r, eval = params$run}
 pmbb_phenotypes_combined <- left_join(pmbb_phecodes_df, pmbb_labs_df, by = "PMBB_ID")
 ```
 
 Then, we'll perform a PheWAS of the different `CFTR` genotype masks across both the phecode and lab datasets. Depending on the analysis, this may be very computationally demanding. The PheWAS can be spread over several cores by specifying the `cores` argument. This is useful when running analyses in the Penn HPC/LPC environments, where multiple cores can be requested. For testing purposes, we'll limit ourselves to the cystic fibrosis phenotype (phecode = "499"):
 
-```{r, eval=FALSE}
+```{r, eval = params$run}
 cftr_phewas_res <- pmbbPheWASr::run_pmbb_phewas(
   mask_genotypes_list = cftr_mask_res,
   populations = c("ALL", "EUR", "AFR"),
@@ -136,7 +138,7 @@ cftr_phewas_res <- pmbbPheWASr::run_pmbb_phewas(
 
 The `render_pmbb_phewas_report` function can be used to generate a report containing the PheWAS results:
 
-```{r, eval=FALSE}
+```{r, eval = params$run}
 render_pmbb_phewas_report(
   phewas_output = cftr_phewas_res,
   mask_output = cftr_mask_res,

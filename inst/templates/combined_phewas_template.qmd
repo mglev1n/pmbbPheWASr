@@ -15,7 +15,7 @@ format:
     embed-resources: true
     citations-hover: true
 fig-height: 4
-fig-format: retina
+fig-format: svg
 execute:
   warning: false
   message: false
@@ -167,8 +167,9 @@ plot_other_manhattan <- function(df) {
   geom_point(size = 2)  +
   ggrepel::geom_text_repel() +
     scale_shape_manual(
-      values = c(24, 25),
-      labels = c("Increase", "Decrease"),
+      limits = c(-1, 1),
+      values = c(25, 24),
+      labels = c("Decrease", "Increase"),
       name = "Effect direction"
     ) +
     scale_fill_viridis_d(option = params$viridis_color_scheme) +
@@ -186,7 +187,7 @@ plot_other_manhattan <- function(df) {
 render_callout <- function(title, message, callout_type = "important") {
   cat(glue::glue("\n::: {.callout-{{callout_type}}  appearance='simple'}\n", .open = "{{", .close = "}}"))
   cat("\n## ", title, "\n\n", message, "\n")
-  cat("\n:::\n")
+  cat("\n::: \n")
   cat("\n\n")
 }
 
@@ -259,6 +260,10 @@ purrr::pwalk(phewas_res_nested, \(mask_name, data) {
 
   if (nrow(variant_info) == 0) {
     render_callout("Variant Information", "No variants were found for this mask.", "important")
+    # cat("\n::: {.callout-important collapse='false' appearance='simple'}\n")
+    # cat("## Variant information\n\n")
+    # cat("No variants were found for this mask.")
+    # cat("\n:::\n")
   } else {
     cat("\n::: {.callout-tip collapse='true' appearance='simple' icon=false}\n")
     cat("## Variant information\n\n")
